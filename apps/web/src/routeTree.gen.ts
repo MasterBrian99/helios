@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as authAuthRouteImport } from './routes/(auth)/auth'
+import { Route as appAppRouteImport } from './routes/(app)/app'
 import { Route as authAuthSignUpRouteImport } from './routes/(auth)/auth/sign-up'
 import { Route as authAuthSignInRouteImport } from './routes/(auth)/auth/sign-in'
+import { Route as appAppPlayIndexRouteImport } from './routes/(app)/app/play/index'
+import { Route as appAppAnalyzeIndexRouteImport } from './routes/(app)/app/analyze/index'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -30,6 +33,11 @@ const authAuthRoute = authAuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const appAppRoute = appAppRouteImport.update({
+  id: '/(app)/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const authAuthSignUpRoute = authAuthSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -40,46 +48,85 @@ const authAuthSignInRoute = authAuthSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authAuthRoute,
 } as any)
+const appAppPlayIndexRoute = appAppPlayIndexRouteImport.update({
+  id: '/play/',
+  path: '/play/',
+  getParentRoute: () => appAppRoute,
+} as any)
+const appAppAnalyzeIndexRoute = appAppAnalyzeIndexRouteImport.update({
+  id: '/analyze/',
+  path: '/analyze/',
+  getParentRoute: () => appAppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/app': typeof appAppRouteWithChildren
   '/auth': typeof authAuthRouteWithChildren
   '/auth/sign-in': typeof authAuthSignInRoute
   '/auth/sign-up': typeof authAuthSignUpRoute
+  '/app/analyze/': typeof appAppAnalyzeIndexRoute
+  '/app/play/': typeof appAppPlayIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/app': typeof appAppRouteWithChildren
   '/auth': typeof authAuthRouteWithChildren
   '/auth/sign-in': typeof authAuthSignInRoute
   '/auth/sign-up': typeof authAuthSignUpRoute
+  '/app/analyze': typeof appAppAnalyzeIndexRoute
+  '/app/play': typeof appAppPlayIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/(app)/app': typeof appAppRouteWithChildren
   '/(auth)/auth': typeof authAuthRouteWithChildren
   '/(auth)/auth/sign-in': typeof authAuthSignInRoute
   '/(auth)/auth/sign-up': typeof authAuthSignUpRoute
+  '/(app)/app/analyze/': typeof appAppAnalyzeIndexRoute
+  '/(app)/app/play/': typeof appAppPlayIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/auth' | '/auth/sign-in' | '/auth/sign-up'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/app'
+    | '/auth'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/app/analyze/'
+    | '/app/play/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/auth' | '/auth/sign-in' | '/auth/sign-up'
+  to:
+    | '/'
+    | '/about'
+    | '/app'
+    | '/auth'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/app/analyze'
+    | '/app/play'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/(app)/app'
     | '/(auth)/auth'
     | '/(auth)/auth/sign-in'
     | '/(auth)/auth/sign-up'
+    | '/(app)/app/analyze/'
+    | '/(app)/app/play/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  appAppRoute: typeof appAppRouteWithChildren
   authAuthRoute: typeof authAuthRouteWithChildren
 }
 
@@ -106,6 +153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(app)/app': {
+      id: '/(app)/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof appAppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(auth)/auth/sign-up': {
       id: '/(auth)/auth/sign-up'
       path: '/sign-up'
@@ -120,8 +174,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authAuthSignInRouteImport
       parentRoute: typeof authAuthRoute
     }
+    '/(app)/app/play/': {
+      id: '/(app)/app/play/'
+      path: '/play'
+      fullPath: '/app/play/'
+      preLoaderRoute: typeof appAppPlayIndexRouteImport
+      parentRoute: typeof appAppRoute
+    }
+    '/(app)/app/analyze/': {
+      id: '/(app)/app/analyze/'
+      path: '/analyze'
+      fullPath: '/app/analyze/'
+      preLoaderRoute: typeof appAppAnalyzeIndexRouteImport
+      parentRoute: typeof appAppRoute
+    }
   }
 }
+
+interface appAppRouteChildren {
+  appAppAnalyzeIndexRoute: typeof appAppAnalyzeIndexRoute
+  appAppPlayIndexRoute: typeof appAppPlayIndexRoute
+}
+
+const appAppRouteChildren: appAppRouteChildren = {
+  appAppAnalyzeIndexRoute: appAppAnalyzeIndexRoute,
+  appAppPlayIndexRoute: appAppPlayIndexRoute,
+}
+
+const appAppRouteWithChildren =
+  appAppRoute._addFileChildren(appAppRouteChildren)
 
 interface authAuthRouteChildren {
   authAuthSignInRoute: typeof authAuthSignInRoute
@@ -140,6 +221,7 @@ const authAuthRouteWithChildren = authAuthRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  appAppRoute: appAppRouteWithChildren,
   authAuthRoute: authAuthRouteWithChildren,
 }
 export const routeTree = rootRouteImport

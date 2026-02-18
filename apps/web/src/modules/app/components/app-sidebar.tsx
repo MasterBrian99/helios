@@ -21,32 +21,33 @@ import {
   PencilEdit02Icon,
   Robot02Icon,
 } from "@hugeicons/core-free-icons"
+import { Link } from "@tanstack/react-router"
 
 const sidebarItems = [
   {
     title: "Dashboard",
-    href: "#",
+    href: "/app",
     icon: DashboardSquare01Icon,
     isActive: true,
   },
   {
-    title: "Learn",
-    href: "#",
+    title: "Play",
+    href: "/app/play",
     icon: BookOpen01Icon,
   },
   {
     title: "Puzzles",
-    href: "#",
+    href: "/app",
     icon: PencilEdit02Icon,
   },
   {
     title: "Analyze",
-    href: "#",
+    href: "/app/analyze",
     icon: Cards02Icon,
   },
   {
     title: "Social",
-    href: "#",
+    href: "/app",
     icon: Robot02Icon,
   },
 ]
@@ -76,11 +77,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu className="px-2">
           {sidebarItems.map((item) => (
             <SidebarMenuItem key={item.title} >
-              <SidebarMenuButton asChild size="lg" isActive={item.isActive}>
-                <a href={item.href}>
+              <SidebarMenuButton asChild size="lg" >
+                <Link to={item.href} activeOptions={{ exact: true }} activeProps={{
+                  style: {
+                    fontWeight: 'bold',
+                  
+                  },
+                }}>
                   <HugeiconsIcon icon={item.icon} strokeWidth={2} className="size-5" />
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
