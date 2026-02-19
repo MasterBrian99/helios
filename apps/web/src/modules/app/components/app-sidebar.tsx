@@ -48,7 +48,7 @@ const sidebarItems = [
   },
   {
     title: "My Games",
-    href: "/app/play",
+    href: "/app/games",
     icon: Chess01Icon,
   },
   {

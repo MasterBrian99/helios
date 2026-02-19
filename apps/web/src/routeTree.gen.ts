@@ -15,7 +15,7 @@ import { Route as authAuthRouteImport } from './routes/(auth)/auth'
 import { Route as appAppRouteImport } from './routes/(app)/app'
 import { Route as authAuthSignUpRouteImport } from './routes/(auth)/auth/sign-up'
 import { Route as authAuthSignInRouteImport } from './routes/(auth)/auth/sign-in'
-import { Route as appAppPlayIndexRouteImport } from './routes/(app)/app/play/index'
+import { Route as appAppGamesIndexRouteImport } from './routes/(app)/app/games/index'
 import { Route as appAppAnalyzeIndexRouteImport } from './routes/(app)/app/analyze/index'
 
 const AboutRoute = AboutRouteImport.update({
@@ -48,9 +48,9 @@ const authAuthSignInRoute = authAuthSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authAuthRoute,
 } as any)
-const appAppPlayIndexRoute = appAppPlayIndexRouteImport.update({
-  id: '/play/',
-  path: '/play/',
+const appAppGamesIndexRoute = appAppGamesIndexRouteImport.update({
+  id: '/games/',
+  path: '/games/',
   getParentRoute: () => appAppRoute,
 } as any)
 const appAppAnalyzeIndexRoute = appAppAnalyzeIndexRouteImport.update({
@@ -67,7 +67,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof authAuthSignInRoute
   '/auth/sign-up': typeof authAuthSignUpRoute
   '/app/analyze/': typeof appAppAnalyzeIndexRoute
-  '/app/play/': typeof appAppPlayIndexRoute
+  '/app/games/': typeof appAppGamesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +77,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof authAuthSignInRoute
   '/auth/sign-up': typeof authAuthSignUpRoute
   '/app/analyze': typeof appAppAnalyzeIndexRoute
-  '/app/play': typeof appAppPlayIndexRoute
+  '/app/games': typeof appAppGamesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +88,7 @@ export interface FileRoutesById {
   '/(auth)/auth/sign-in': typeof authAuthSignInRoute
   '/(auth)/auth/sign-up': typeof authAuthSignUpRoute
   '/(app)/app/analyze/': typeof appAppAnalyzeIndexRoute
-  '/(app)/app/play/': typeof appAppPlayIndexRoute
+  '/(app)/app/games/': typeof appAppGamesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +100,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/app/analyze/'
-    | '/app/play/'
+    | '/app/games/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +110,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/app/analyze'
-    | '/app/play'
+    | '/app/games'
   id:
     | '__root__'
     | '/'
@@ -120,7 +120,7 @@ export interface FileRouteTypes {
     | '/(auth)/auth/sign-in'
     | '/(auth)/auth/sign-up'
     | '/(app)/app/analyze/'
-    | '/(app)/app/play/'
+    | '/(app)/app/games/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,11 +174,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authAuthSignInRouteImport
       parentRoute: typeof authAuthRoute
     }
-    '/(app)/app/play/': {
-      id: '/(app)/app/play/'
-      path: '/play'
-      fullPath: '/app/play/'
-      preLoaderRoute: typeof appAppPlayIndexRouteImport
+    '/(app)/app/games/': {
+      id: '/(app)/app/games/'
+      path: '/games'
+      fullPath: '/app/games/'
+      preLoaderRoute: typeof appAppGamesIndexRouteImport
       parentRoute: typeof appAppRoute
     }
     '/(app)/app/analyze/': {
@@ -193,12 +193,12 @@ declare module '@tanstack/react-router' {
 
 interface appAppRouteChildren {
   appAppAnalyzeIndexRoute: typeof appAppAnalyzeIndexRoute
-  appAppPlayIndexRoute: typeof appAppPlayIndexRoute
+  appAppGamesIndexRoute: typeof appAppGamesIndexRoute
 }
 
 const appAppRouteChildren: appAppRouteChildren = {
   appAppAnalyzeIndexRoute: appAppAnalyzeIndexRoute,
-  appAppPlayIndexRoute: appAppPlayIndexRoute,
+  appAppGamesIndexRoute: appAppGamesIndexRoute,
 }
 
 const appAppRouteWithChildren =
