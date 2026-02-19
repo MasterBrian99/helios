@@ -129,8 +129,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuSub >
                       {item.children.map((child) => (
                         <SidebarMenuSubItem key={child.title} >
-                          <SidebarMenuSubButton asChild  >
-                            <Link to={child.href}>
+                          <SidebarMenuSubButton asChild className="h-12 text-sm group-data-[collapsible=icon]:p-0!" >
+                            <Link to={child.href} activeOptions={{ exact: true }} activeProps={{
+                              style: {
+                                fontWeight: 'bold',
+
+                              },
+                            }}>
                               {child.icon && (
                                 <HugeiconsIcon icon={child.icon} strokeWidth={2} className="size-4" />
                               )}
@@ -148,9 +153,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton asChild size="lg">
                   <Link
                     to={item.href!}
-                    activeOptions={{ exact: item.href === "/app" }}
-                    activeProps={{
-                      className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                    activeOptions={{ exact: true }} activeProps={{
+                      style: {
+                        fontWeight: 'bold',
+
+                      },
                     }}
                   >
                     {item.icon && (
