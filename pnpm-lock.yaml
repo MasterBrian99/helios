@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      lage:
+        specifier: latest
+        version: 2.14.18
 
   apps/api:
     dependencies:
@@ -3648,6 +3652,41 @@ packages:
     resolution: {integrity: sha512-L5bGsVkxJbJgdnwyuheIunkGatUF/zssUoxxjACCseZYAVbaqdh9Tsmmlkl8vYan09H7sbvKt4pS8GqKLBrEzA==}
     hasBin: true
 
+  glob-hasher-darwin-arm64@1.4.2:
+    resolution: {integrity: sha512-zqCZDkDrgo86UsEbOV5wnfyAVlNQ85clGt9EV4LlskDmv2aeuHD6dFYU8hLbbQSC7nvd90EWewy1WqvV6KsL7A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  glob-hasher-darwin-x64@1.4.2:
+    resolution: {integrity: sha512-yEmIQyr6pGj2RG6IxUpOiVbbTm+lw5+L6MqxdPJvp+Z96YSUIo7aOkru0M8lgFGTRh5fQNDWdoHM6kgK8USYrA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  glob-hasher-linux-x64-gnu@1.4.2:
+    resolution: {integrity: sha512-7TT8Wfkw41zwfvkbZJ3M3QqWR4bR9qLnbSzcMFHrOIpJjdnvKzCzrqfi470S8sPb6dyEVyS7s49eP5YB8cSy5A==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  glob-hasher-win32-arm64-msvc@1.4.2:
+    resolution: {integrity: sha512-HyNotx1CF0/7ulND7CnbLoyuykGeMIARJRzJK36WlcgR+BqkSfcPJEbsbk7AsHhaBOtlUWAbEX9MDndcx8uguQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  glob-hasher-win32-x64-msvc@1.4.2:
+    resolution: {integrity: sha512-6mKybe2NwFABUA7ZxiiXurD5RXDrrCWwGA53NasfnO4z+hvH5q4jG6YvVhavf6GdTapJi9WwfMHRKvoSQNUxeQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  glob-hasher@1.4.2:
+    resolution: {integrity: sha512-wYeJvOixB9iAzNpY94AgK0JvOdOQ7g30U+PN0LGSH9u0Y0WC+jIwukjMZ1JZiSoNzUSyrvABZYCNhXpZEoJ/8Q==}
+    engines: {node: '>= 10'}
+
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
     engines: {node: '>= 6'}
@@ -4153,6 +4192,10 @@ packages:
   kysely@0.28.11:
     resolution: {integrity: sha512-zpGIFg0HuoC893rIjYX1BETkVWdDnzTzF5e0kWXJFg5lE0k1/LfNWBejrcnOFu8Q2Rfq/hTDTU7XLUM8QOrpzg==}
     engines: {node: '>=20.0.0'}
+
+  lage@2.14.18:
+    resolution: {integrity: sha512-pVW45DnILDaLxr8KiuSK5yQnWTQSmk0MlBgRlvixrk11EwptGEJNXrBfpWFjEJ2WkBUp/6ifdoWLro81GHFi0w==}
+    hasBin: true
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -9414,6 +9457,29 @@ snapshots:
       nypm: 0.6.5
       pathe: 2.0.3
 
+  glob-hasher-darwin-arm64@1.4.2:
+    optional: true
+
+  glob-hasher-darwin-x64@1.4.2:
+    optional: true
+
+  glob-hasher-linux-x64-gnu@1.4.2:
+    optional: true
+
+  glob-hasher-win32-arm64-msvc@1.4.2:
+    optional: true
+
+  glob-hasher-win32-x64-msvc@1.4.2:
+    optional: true
+
+  glob-hasher@1.4.2:
+    optionalDependencies:
+      glob-hasher-darwin-arm64: 1.4.2
+      glob-hasher-darwin-x64: 1.4.2
+      glob-hasher-linux-x64-gnu: 1.4.2
+      glob-hasher-win32-arm64-msvc: 1.4.2
+      glob-hasher-win32-x64-msvc: 1.4.2
+
   glob-parent@5.1.2:
     dependencies:
       is-glob: 4.0.3
@@ -10060,6 +10126,12 @@ snapshots:
       - typescript
 
   kysely@0.28.11: {}
+
+  lage@2.14.18:
+    dependencies:
+      glob-hasher: 1.4.2
+    optionalDependencies:
+      fsevents: 2.3.3
 
   leven@3.1.0: {}
 

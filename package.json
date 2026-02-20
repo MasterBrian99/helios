@@ -1,13 +1,18 @@
 {
   "name": "helios",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+ "scripts": {
+    "build": "lage build",
+    "test": "lage test",
+    "lint": "lage lint"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.28.2"
+  "packageManager": "pnpm@10.28.2",
+   "devDependencies": {
+    "lage": "latest"
+  }
 }
