@@ -1,6 +1,23 @@
 import { Kysely, sql } from 'kysely';
+import { ExplanationLevel } from 'src/modules/user/enums/explanation-level';
+import { PlayingStyle } from 'src/modules/user/enums/playing-style';
 
 const tableName = 'users';
+
+const PLAYING_STYLE = [
+  'aggressive',
+  'positional',
+  'solid',
+  'unknown',
+  'tactical',
+] as const satisfies readonly `${PlayingStyle}`[];
+
+const EXPLANATION_LEVEL = [
+  'beginner',
+  'intermediate',
+  'advanced',
+] as const satisfies readonly `${ExplanationLevel}`[];
+
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable(tableName)
@@ -10,9 +27,15 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('password', 'text', (col) => col.notNull())
     .addColumn('full_name', 'text')
 
-    // Chess profile
     .addColumn('current_rating', 'integer', (col) => col.defaultTo(1200))
-    .addColumn('playing_style', 'varchar(50)')
+    .addColumn('playing_style', 'varchar(50)', (col) =>
+      col
+        .notNull()
+        .check(
+          sql`playing_style IN (${sql.join(PLAYING_STYLE.map((code) => sql.lit(code)))})`,
+        )
+        .defaultTo('unknown'),
+    )
     .addColumn('years_playing', 'integer')
 
     // Account status
@@ -25,15 +48,18 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn('timezone', 'varchar(50)', (col) => col.defaultTo('UTC'))
     .addColumn('explanation_level', 'varchar(20)', (col) =>
-      col.defaultTo('intermediate'),
+      col
+        .notNull()
+        .check(
+          sql`explanation_level IN (${sql.join(EXPLANATION_LEVEL.map((code) => sql.lit(code)))})`,
+        )
+        .defaultTo('intermediate'),
     )
 
-    // Privacy
     .addColumn('profile_public', 'boolean', (col) => col.defaultTo(true))
     .addColumn('show_rating_publicly', 'boolean', (col) => col.defaultTo(true))
     .addColumn('allow_friend_requests', 'boolean', (col) => col.defaultTo(true))
 
-    // Metadata
     .addColumn('created_at', 'timestamp', (col) =>
       col.defaultTo(sql`CURRENT_TIMESTAMP`),
     )
@@ -48,14 +74,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addCheckConstraint(
       'users_current_rating_check',
       sql`current_rating >= 400 AND current_rating <= 3000`,
-    )
-    .addCheckConstraint(
-      'users_playing_style_check',
-      sql`playing_style IN ('aggressive', 'positional', 'solid', 'tactical', 'unknown')`,
-    )
-    .addCheckConstraint(
-      'users_explanation_level_check',
-      sql`explanation_level IN ('beginner', 'intermediate', 'advanced')`,
     )
 
     .execute();
