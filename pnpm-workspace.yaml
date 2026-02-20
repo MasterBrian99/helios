@@ -1,2 +1,7 @@
 packages:
-  - "apps/*"
+  - apps/*
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - bcrypt
+  - unrs-resolver
