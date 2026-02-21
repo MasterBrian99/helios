@@ -1,26 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { CreateGameDto } from './dto/create-game.dto';
-import { UpdateGameDto } from './dto/update-game.dto';
+import { GameRepository } from './game.repository';
+import { PgnParserService, ParsedGame } from './pgn-parser.service';
+import { GameCreate } from 'src/database/schema/games';
+import { getUUID } from 'src/utils/uuid-gen';
+import { withTimestamps } from 'src/database/utils/datetime';
 
 @Injectable()
 export class GameService {
-  create(createGameDto: CreateGameDto) {
-    return 'This action adds a new game';
-  }
+  constructor(
+    private readonly gameRepository: GameRepository,
+    private readonly pgnParserService: PgnParserService,
+  ) {}
 
-  findAll() {
-    return `This action returns all game`;
-  }
+  async create(userId: string, createGameDto: CreateGameDto) {
+    const allParsedGames: ParsedGame[] = [];
 
-  findOne(id: number) {
-    return `This action returns a #${id} game`;
-  }
+    for (const pgnString of createGameDto.pgn) {
+      const parsed = this.pgnParserService.parseMultiplePgns(pgnString);
+      allParsedGames.push(...parsed);
+    }
 
-  update(id: number, updateGameDto: UpdateGameDto) {
-    return `This action updates a #${id} game`;
-  }
+    const gamesToInsert: GameCreate[] = allParsedGames.map((game) =>
+      withTimestamps({
+        id: getUUID(),
+        userId,
+        pgn: game.pgn,
+        source: createGameDto.source,
+        whitePlayer: game.whitePlayer,
+        blackPlayer: game.blackPlayer,
+        whiteRating: game.whiteRating,
+        blackRating: game.blackRating,
+        result: game.result,
+        termination: game.termination,
+        timeControl: game.timeControl,
+        timeControlType: game.timeControlType,
+        eventName: game.eventName,
+        playedAt: game.playedAt ?? new Date(),
+        openingEco: game.openingEco,
+        openingName: game.openingName,
+        totalMoves: game.totalMoves,
+      }),
+    );
 
-  remove(id: number) {
-    return `This action removes a #${id} game`;
+    const createdGames = await this.gameRepository.createGames(gamesToInsert);
+    return createdGames;
   }
 }

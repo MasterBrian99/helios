@@ -1,0 +1,46 @@
+import { Game } from 'src/database/schema/games';
+import { ChessResult } from '../enums/chess-game-result';
+import { ChessGameSource } from '../enums/chess-game-source.enum';
+import { ChessGameStatus } from '../enums/chess-game-status.enum';
+import { ChessGameTermination } from '../enums/chess-game-termination.enum';
+import { ChessTimeControlType } from '../enums/chess-time-control-type.enum';
+import { ChessUserColor } from '../enums/chess-user-color.enum';
+
+export class GameModel implements Game {
+  id: string;
+  userId: string;
+  pgn: string;
+  source: ChessGameSource | null;
+  externalGameId: string | null;
+  whitePlayer: string;
+  whiteRating: number | null;
+  blackPlayer: string;
+  blackRating: number | null;
+  userColor: ChessUserColor | null;
+  result: ChessResult;
+  termination: ChessGameTermination | null;
+  timeControl: string | null;
+  timeControlType: ChessTimeControlType | null;
+  status: ChessGameStatus;
+  eventName: string | null;
+  playedAt: string | Date;
+  openingEco: string | null;
+  openingName: string | null;
+  analyzed: boolean;
+  analysisCompletedAt: string | Date | null;
+  analysisEngine: string | null;
+  totalMoves: number | null;
+  userAccuracy: number | null;
+  opponentAccuracy: number | null;
+  userAvgCentipawnLoss: number | null;
+  opponentAvgCentipawnLoss: number | null;
+  userBlunders: number;
+  userMistakes: number;
+  userInaccuracies: number;
+  userTimeTrouble: boolean;
+  isPublic: boolean;
+  isFavorite: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date;
+}

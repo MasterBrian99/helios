@@ -24,7 +24,7 @@ export class UserModel implements User {
   updatedAt: Date;
   lastLoginAt: string | null;
   lastActiveAt: string | null;
-  deletedAt: string | null;
+  deletedAt: Date;
   constructor(user: User) {
     this.id = user.id;
     this.username = user.username;

@@ -21,5 +21,5 @@ export class UserDto {
   updatedAt: Date;
   lastLoginAt: string | null;
   lastActiveAt: string | null;
-  deletedAt: string | null;
+  deletedAt: Date;
 }
