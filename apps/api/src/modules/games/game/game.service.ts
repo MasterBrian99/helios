@@ -5,6 +5,7 @@ import { PgnParserService, ParsedGame } from './pgn-parser.service';
 import { GameCreate } from 'src/database/schema/games';
 import { getUUID } from 'src/utils/uuid-gen';
 import { withTimestamps } from 'src/database/utils/datetime';
+import { StandardResponse } from 'src/common/dto/standard-response.dto';
 
 @Injectable()
 export class GameService {
@@ -13,7 +14,10 @@ export class GameService {
     private readonly pgnParserService: PgnParserService,
   ) {}
 
-  async create(userId: string, createGameDto: CreateGameDto) {
+  async create(
+    userId: string,
+    createGameDto: CreateGameDto,
+  ): Promise<StandardResponse> {
     const allParsedGames: ParsedGame[] = [];
 
     for (const pgnString of createGameDto.pgn) {
@@ -43,7 +47,10 @@ export class GameService {
       }),
     );
 
-    const createdGames = await this.gameRepository.createGames(gamesToInsert);
-    return createdGames;
+    await this.gameRepository.createGames(gamesToInsert);
+    return {
+      message: 'Games created successfully',
+      statusCode: 201,
+    };
   }
 }

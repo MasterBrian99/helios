@@ -8,14 +8,6 @@ import { GameCreate } from 'src/database/schema/games';
 export class GameRepository {
   constructor(@InjectKysely() private readonly kdb: Kysely<DB>) {}
 
-  async createGame(game: GameCreate) {
-    return await this.kdb
-      .insertInto('games')
-      .values(game)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-  }
-
   async createGames(games: GameCreate[]) {
     if (games.length === 0) return [];
 
