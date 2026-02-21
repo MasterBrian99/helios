@@ -6,3 +6,8 @@ export type UpdatedAt = ColumnType<
   Date | string | undefined,
   string | undefined
 >;
+export type DeletedAt = ColumnType<
+  Date,
+  Date | string | undefined,
+  string | undefined
+>;

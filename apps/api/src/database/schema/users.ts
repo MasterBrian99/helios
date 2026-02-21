@@ -1,5 +1,5 @@
 import { PlayingStyle } from 'src/modules/user/enums/playing-style';
-import { CreatedAt, UpdatedAt } from './common/datetime';
+import { CreatedAt, DeletedAt, UpdatedAt } from './common/datetime';
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 import { ExplanationLevel } from 'src/modules/user/enums/explanation-level';
 
@@ -24,7 +24,7 @@ export interface UserTable {
   updatedAt: UpdatedAt;
   lastLoginAt: string | null;
   lastActiveAt: string | null;
-  deletedAt: string | null;
+  deletedAt: DeletedAt;
 }
 export type User = Selectable<UserTable>;
 export type UserCreate = Insertable<UserTable>;

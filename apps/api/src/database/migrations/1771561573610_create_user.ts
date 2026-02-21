@@ -4,20 +4,6 @@ import { PlayingStyle } from 'src/modules/user/enums/playing-style';
 
 const tableName = 'users';
 
-const PLAYING_STYLE = [
-  'aggressive',
-  'positional',
-  'solid',
-  'unknown',
-  'tactical',
-] as const satisfies readonly `${PlayingStyle}`[];
-
-const EXPLANATION_LEVEL = [
-  'beginner',
-  'intermediate',
-  'advanced',
-] as const satisfies readonly `${ExplanationLevel}`[];
-
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable(tableName)
@@ -32,7 +18,17 @@ export async function up(db: Kysely<any>): Promise<void> {
       col
         .notNull()
         .check(
-          sql`playing_style IN (${sql.join(PLAYING_STYLE.map((code) => sql.lit(code)))})`,
+          sql`playing_style IN (${sql.join(
+            (
+              [
+                'aggressive',
+                'positional',
+                'solid',
+                'unknown',
+                'tactical',
+              ] as const satisfies readonly `${PlayingStyle}`[]
+            ).map((code) => sql.lit(code)),
+          )})`,
         )
         .defaultTo('unknown'),
     )
@@ -51,7 +47,15 @@ export async function up(db: Kysely<any>): Promise<void> {
       col
         .notNull()
         .check(
-          sql`explanation_level IN (${sql.join(EXPLANATION_LEVEL.map((code) => sql.lit(code)))})`,
+          sql`explanation_level IN (${sql.join(
+            (
+              [
+                'beginner',
+                'intermediate',
+                'advanced',
+              ] as const satisfies readonly `${ExplanationLevel}`[]
+            ).map((code) => sql.lit(code)),
+          )})`,
         )
         .defaultTo('intermediate'),
     )

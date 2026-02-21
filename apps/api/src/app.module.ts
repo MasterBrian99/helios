@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { validate } from './config/env';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { GamesModule } from './modules/games/games.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     }),
     AuthModule,
     UserModule,
+    GamesModule,
   ],
   controllers: [],
   providers: [
