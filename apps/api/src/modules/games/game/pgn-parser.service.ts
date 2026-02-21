@@ -37,44 +37,52 @@ export class PgnParserService {
 
   /**
    * Parse a single PGN string into structured game data.
+   * Returns null if parsing fails.
    */
-  parsePgn(pgn: string): ParsedGame {
-    const chess = new Chess();
-    chess.loadPgn(pgn);
+  parsePgn(pgn: string): ParsedGame | null {
+    try {
+      const chess = new Chess();
+      chess.loadPgn(pgn);
 
-    const headers = chess.getHeaders();
-    const moves = chess.history();
+      const headers = chess.getHeaders();
+      const moves = chess.history();
 
-    return {
-      pgn,
-      whitePlayer: headers['White'] || 'Unknown',
-      blackPlayer: headers['Black'] || 'Unknown',
-      whiteRating: headers['WhiteElo']
-        ? parseInt(headers['WhiteElo'], 10)
-        : null,
-      blackRating: headers['BlackElo']
-        ? parseInt(headers['BlackElo'], 10)
-        : null,
-      result: this.mapResult(headers['Result'] ?? undefined),
-      termination: this.mapTermination(headers['Termination'] ?? undefined),
-      timeControl: headers['TimeControl'] || null,
-      timeControlType: this.deriveTimeControlType(
-        headers['TimeControl'] ?? undefined,
-      ),
-      eventName: headers['Event'] || null,
-      playedAt: this.parsePgnDate(headers['Date'] ?? undefined),
-      openingEco: headers['ECO'] || null,
-      openingName: headers['Opening'] || null,
-      totalMoves: Math.ceil(moves.length / 2),
-    };
+      return {
+        pgn,
+        whitePlayer: headers['White'] || 'Unknown',
+        blackPlayer: headers['Black'] || 'Unknown',
+        whiteRating: headers['WhiteElo']
+          ? parseInt(headers['WhiteElo'], 10)
+          : null,
+        blackRating: headers['BlackElo']
+          ? parseInt(headers['BlackElo'], 10)
+          : null,
+        result: this.mapResult(headers['Result'] ?? undefined),
+        termination: this.mapTermination(headers['Termination'] ?? undefined),
+        timeControl: headers['TimeControl'] || null,
+        timeControlType: this.deriveTimeControlType(
+          headers['TimeControl'] ?? undefined,
+        ),
+        eventName: headers['Event'] || null,
+        playedAt: this.parsePgnDate(headers['Date'] ?? undefined),
+        openingEco: headers['ECO'] || null,
+        openingName: headers['Opening'] || null,
+        totalMoves: Math.ceil(moves.length / 2),
+      };
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Parse multiple PGNs from a single concatenated PGN string.
+   * Skips games that fail to parse.
    */
   parseMultiplePgns(multiPgn: string): ParsedGame[] {
     const pgns = this.splitPgn(multiPgn);
-    return pgns.map((pgn) => this.parsePgn(pgn));
+    return pgns
+      .map((pgn) => this.parsePgn(pgn))
+      .filter((game): game is ParsedGame => game !== null);
   }
 
   private mapResult(result?: string): ChessResult {
