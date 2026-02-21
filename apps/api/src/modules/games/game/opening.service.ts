@@ -41,11 +41,9 @@ export class OpeningService implements OnModuleInit {
     this.openings = await this.ecoModule.openingBook();
   }
 
-
   isReady(): boolean {
     return this.openings !== null && this.ecoModule !== null;
   }
-
 
   findByMoves(chess: ChessPGN): OpeningInfo {
     if (!this.openings || !this.ecoModule) {
@@ -66,7 +64,6 @@ export class OpeningService implements OnModuleInit {
 
     return { eco: null, name: null };
   }
-
 
   getOpeningInfo(
     headers: Record<string, string>,
