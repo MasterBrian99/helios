@@ -14,6 +14,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@chess-openings/eco.json':
+        specifier: ^1.1.0
+        version: 1.1.0
+      '@chess-pgn/chess-pgn':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.14(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -556,6 +562,14 @@ packages:
 
   '@borewit/text-codec@0.2.1':
     resolution: {integrity: sha512-k7vvKPbf7J2fZ5klGRD9AeKfUvojuZIQ3BT5u7Jfv+puwXkUBUT5PVyMDfJZpy30CBDXGMgw7fguK/lpOMBvgw==}
+
+  '@chess-openings/eco.json@1.1.0':
+    resolution: {integrity: sha512-mWpwKMv2HdcUgmjL0S4WeK3ko0J7gwngkUglgevSvLcuSMeC8SkvjfYzZFb5djXMcVgArIikuq7H7QHg4Q0EwQ==}
+    engines: {node: '>=18.0.0'}
+
+  '@chess-pgn/chess-pgn@1.0.1':
+    resolution: {integrity: sha512-yFYuuluFhQBdzA9cQjcEfmoue2sJF8CiCKl+YL3EqZ4vmRydUDKZWusjg9ijBPJddLlELIJmt3ctmvZZkmlmTw==}
+    engines: {node: '>=22.15.0'}
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -6170,6 +6184,10 @@ snapshots:
   '@bcoe/v8-coverage@0.2.3': {}
 
   '@borewit/text-codec@0.2.1': {}
+
+  '@chess-openings/eco.json@1.1.0': {}
+
+  '@chess-pgn/chess-pgn@1.0.1': {}
 
   '@colors/colors@1.5.0':
     optional: true

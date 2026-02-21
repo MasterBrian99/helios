@@ -26,6 +26,8 @@
     "kysely-ctl:migrate:rollback": "npx kysely-ctl migrate rollback -config kysely.config.ts"
   },
   "dependencies": {
+    "@chess-openings/eco.json": "^1.1.0",
+    "@chess-pgn/chess-pgn": "^1.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",

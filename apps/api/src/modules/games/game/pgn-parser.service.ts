@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Chess } from 'chess.js';
+import { ChessPGN } from '@chess-pgn/chess-pgn';
 import { ChessResult } from './enums/chess-game-result';
 import { ChessGameTermination } from './enums/chess-game-termination.enum';
 import { ChessTimeControlType } from './enums/chess-time-control-type.enum';
+import { OpeningService } from './opening.service';
 
 export interface ParsedGame {
   pgn: string;
@@ -23,6 +24,8 @@ export interface ParsedGame {
 
 @Injectable()
 export class PgnParserService {
+  constructor(private readonly openingService: OpeningService) {}
+
   /**
    * Split a multi-game PGN string into individual PGN strings.
    * Games in a PGN file are separated by blank lines before a new tag pair.
@@ -41,11 +44,14 @@ export class PgnParserService {
    */
   parsePgn(pgn: string): ParsedGame | null {
     try {
-      const chess = new Chess();
+      const chess = new ChessPGN();
       chess.loadPgn(pgn);
 
       const headers = chess.getHeaders();
       const moves = chess.history();
+
+      // Get opening from headers or lookup from eco.json
+      const openingInfo = this.openingService.getOpeningInfo(headers, chess);
 
       return {
         pgn,
@@ -65,8 +71,8 @@ export class PgnParserService {
         ),
         eventName: headers['Event'] || null,
         playedAt: this.parsePgnDate(headers['Date'] ?? undefined),
-        openingEco: headers['ECO'] || null,
-        openingName: headers['Opening'] || null,
+        openingEco: openingInfo.eco,
+        openingName: openingInfo.name,
         totalMoves: Math.ceil(moves.length / 2),
       };
     } catch {
