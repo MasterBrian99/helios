@@ -5,7 +5,8 @@ import { PgnParserService, ParsedGame } from './pgn-parser.service';
 import { GameCreate } from 'src/database/schema/games';
 import { getUUID } from 'src/utils/uuid-gen';
 import { withTimestamps } from 'src/database/utils/datetime';
-import { StandardResponse } from 'src/common/dto/standard-response.dto';
+import { StandardResponse } from 'src/common/dtos/standard-response.dto';
+import { GameListFilterDto } from './dto/game-list-filter.dto';
 
 @Injectable()
 export class GameService {
@@ -52,5 +53,9 @@ export class GameService {
       message: 'Games created successfully',
       statusCode: 201,
     };
+  }
+
+  async listGames(userId: string, gameListFilterDto: GameListFilterDto) {
+    await this.gameRepository.listGames(userId, gameListFilterDto);
   }
 }

@@ -11,7 +11,7 @@ import { LoginAuthDto } from './dto/login-auth.dto';
 import { UserService } from '../user/user.service';
 import { PasswordService } from './password.service';
 import { JwtService } from './jwt/jwt.service';
-import { StandardResponse } from 'src/common/dto/standard-response.dto';
+import { StandardResponse } from 'src/common/dtos/standard-response.dto';
 import { InvalidLoginOrPasswordException } from 'src/common/exceptions/invalid-login-or-password.exception';
 import { UserDto } from '../user/dto/user.dto';
 
