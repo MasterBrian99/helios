@@ -14,6 +14,7 @@ const envs = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   S3_ENDPOINT: z.string().optional(),
   S3_SIGNED_URL_EXPIRES: z.coerce.number().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
 });
 
 export const validate = () => {

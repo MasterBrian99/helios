@@ -2,6 +2,15 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import * as readline from 'readline';
 
+export interface EvaluationResult {
+  score: number | null;
+  scoreType: 'cp' | 'mate' | null;
+  bestMove: string | null;
+  pv: string[];
+  depth: number | null;
+  rawLines: string[];
+}
+
 @Injectable()
 export class StockfishService implements OnModuleInit, OnModuleDestroy {
   private engine: ChildProcessWithoutNullStreams;
@@ -9,7 +18,7 @@ export class StockfishService implements OnModuleInit, OnModuleDestroy {
   private isReady = false;
 
   async onModuleInit() {
-    this.engine = spawn('./bin/stockfish'); // path to binary
+    this.engine = spawn('./bin/stockfish');
 
     this.rl = readline.createInterface({
       input: this.engine.stdout,
@@ -23,7 +32,6 @@ export class StockfishService implements OnModuleInit, OnModuleDestroy {
       console.log('Stockfish exited:', code);
     });
 
-    // Initialize UCI
     await this.sendCommand('uci');
     await this.waitFor('uciok');
 
@@ -65,7 +73,7 @@ export class StockfishService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async evaluatePosition(fen: string, depth = 15) {
+  async evaluatePosition(fen: string, depth = 15): Promise<string[]> {
     if (!this.isReady) {
       throw new Error('Stockfish not ready');
     }
@@ -76,5 +84,76 @@ export class StockfishService implements OnModuleInit, OnModuleDestroy {
     const result = await this.waitFor('bestmove');
 
     return result;
+  }
+
+  async analyzePosition(fen: string, depth = 15): Promise<EvaluationResult> {
+    const rawLines = await this.evaluatePosition(fen, depth);
+    return this.parseEvaluation(rawLines);
+  }
+
+  parseEvaluation(lines: string[]): EvaluationResult {
+    let score: number | null = null;
+    let scoreType: 'cp' | 'mate' | null = null;
+    let bestMove: string | null = null;
+    let pv: string[] = [];
+    let depth: number | null = null;
+
+    for (const line of lines) {
+      if (line.startsWith('info depth')) {
+        const depthMatch = line.match(/info depth (\d+)/);
+        if (depthMatch) {
+          depth = parseInt(depthMatch[1], 10);
+        }
+
+        const cpMatch = line.match(/score cp (-?\d+)/);
+        if (cpMatch) {
+          score = parseInt(cpMatch[1], 10);
+          scoreType = 'cp';
+        }
+
+        const mateMatch = line.match(/score mate (-?\d+)/);
+        if (mateMatch) {
+          score = parseInt(mateMatch[1], 10);
+          scoreType = 'mate';
+        }
+
+        const pvMatch = line.match(/pv (.+)$/);
+        if (pvMatch) {
+          pv = pvMatch[1].trim().split(/\s+/);
+        }
+      }
+
+      if (line.startsWith('bestmove')) {
+        const bestMoveMatch = line.match(/bestmove (\S+)/);
+        if (bestMoveMatch) {
+          bestMove = bestMoveMatch[1];
+        }
+      }
+    }
+
+    return {
+      score,
+      scoreType,
+      bestMove,
+      pv,
+      depth,
+      rawLines: lines,
+    };
+  }
+
+  scoreToCentipawns(score: number, scoreType: 'cp' | 'mate'): number {
+    if (scoreType === 'cp') {
+      return score;
+    }
+
+    if (scoreType === 'mate') {
+      if (score > 0) {
+        return 10000 - score;
+      } else {
+        return -10000 - score;
+      }
+    }
+
+    return 0;
   }
 }

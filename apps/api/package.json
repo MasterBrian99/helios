@@ -26,6 +26,7 @@
     "kysely-ctl:migrate:rollback": "npx kysely-ctl migrate rollback -config kysely.config.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.30",
     "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@chess-openings/eco.json": "^1.1.0",
@@ -38,6 +39,8 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.6",
+    "@wavezync/nestjs-pgboss": "^5.1.1",
+    "ai": "^6.0.97",
     "bcrypt": "^6.0.0",
     "chess.js": "^1.4.0",
     "class-transformer": "^0.5.1",
@@ -51,6 +54,7 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.18.0",
+    "pg-boss": "^12.13.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^4.3.6"

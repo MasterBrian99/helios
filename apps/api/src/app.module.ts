@@ -11,6 +11,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GamesModule } from './modules/games/games.module';
 import { StorageModule } from './storage/storage.module';
 import { StockfishModule } from './stockfish/stockfish.module';
+import { AnalysisModule } from './modules/analysis/analysis.module';
+import { PgBossModule } from '@wavezync/nestjs-pgboss';
 
 @Module({
   imports: [
@@ -26,12 +28,18 @@ import { StockfishModule } from './stockfish/stockfish.module';
         plugins: [new CamelCasePlugin()],
       }),
     }),
+    PgBossModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connectionString: configService.get<string>('DATABASE_URL'),
+      }),
+    }),
     AuthModule,
     UserModule,
     GamesModule,
-    // Import the new storage module
     StorageModule,
     StockfishModule,
+    AnalysisModule,
   ],
   controllers: [],
   providers: [
