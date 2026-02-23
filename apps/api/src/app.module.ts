@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GamesModule } from './modules/games/games.module';
 import { StorageModule } from './storage/storage.module';
+import { StockfishModule } from './stockfish/stockfish.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StorageModule } from './storage/storage.module';
     GamesModule,
     // Import the new storage module
     StorageModule,
+    StockfishModule,
   ],
   controllers: [],
   providers: [
