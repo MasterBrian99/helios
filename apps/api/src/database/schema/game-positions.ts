@@ -4,9 +4,9 @@ import { CreatedAt } from './common/datetime';
 export type MoveQuality =
   | 'brilliant'
   | 'great'
-  | 'good'
+  | 'best'
   | 'book'
-  | 'inaccuracy'
+  | 'miss'
   | 'mistake'
   | 'blunder';
 

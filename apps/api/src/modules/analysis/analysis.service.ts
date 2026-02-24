@@ -34,6 +34,10 @@ interface SequencePatternMapping {
   difficulty: number | null;
 }
 
+interface AnalyzableGame extends Game {
+  currentRating: number | null;
+}
+
 @Injectable()
 export class AnalysisService {
   private readonly logger = new Logger(AnalysisService.name);
@@ -85,6 +89,7 @@ export class AnalysisService {
       const result = await this.moveEvaluatorService.analyzeGame(
         game.pgn,
         game.userColor as 'white' | 'black' | null,
+        game.currentRating,
       );
 
       for (const analysis of result.positions) {
@@ -94,7 +99,9 @@ export class AnalysisService {
       const userMistakes = result.positions.filter(
         (p) =>
           p.isUserMove &&
-          (p.moveQuality === 'blunder' || p.moveQuality === 'mistake') &&
+          (p.moveQuality === 'blunder' ||
+            p.moveQuality === 'mistake' ||
+            p.moveQuality === 'miss') &&
           p.mateAfter !== 0 &&
           p.mateBefore !== 0,
       );
@@ -408,12 +415,17 @@ export class AnalysisService {
     return Math.min(100, Math.max(10, Math.round(difficulty)));
   }
 
-  private async getGame(gameId: string, userId: string): Promise<Game> {
+  private async getGame(
+    gameId: string,
+    userId: string,
+  ): Promise<AnalyzableGame> {
     const game = await this.db
       .selectFrom('games')
-      .selectAll()
-      .where('id', '=', gameId)
-      .where('userId', '=', userId)
+      .innerJoin('users', 'users.id', 'games.userId')
+      .selectAll('games')
+      .select('users.currentRating as currentRating')
+      .where('games.id', '=', gameId)
+      .where('games.userId', '=', userId)
       .executeTakeFirst();
 
     if (!game) {
@@ -432,16 +444,16 @@ export class AnalysisService {
     const validClassifications: MoveClassification[] = [
       'brilliant',
       'great',
-      'good',
+      'best',
       'book',
-      'inaccuracy',
+      'miss',
       'mistake',
       'blunder',
     ];
     if (validClassifications.includes(moveQuality as MoveClassification)) {
       return moveQuality as MoveClassification;
     }
-    return 'good';
+    return 'best';
   }
 
   private async updateGameStats(

@@ -160,7 +160,7 @@ STYLE RULES:
 - If material=no immediate material loss, focus on positional or tactical consequences instead.
 - If severity=blunder, make it sound serious.
 - If severity=mistake, make it sound moderate.
-- If severity=inaccuracy, make it sound mild.
+- If severity=miss, make it sound mild.
 
 VERIFIED_FACTS:
 phase=${data.phase}
