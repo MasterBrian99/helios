@@ -3,20 +3,18 @@ import { ChessResult } from '../../modules/games/game/enums/chess-game-result';
 import { ChessGameSource } from '../../modules/games/game/enums/chess-game-source.enum';
 import { ChessTimeControlType } from '../../modules/games/game/enums/chess-time-control-type.enum';
 import { ChessUserColor } from '../../modules/games/game/enums/chess-user-color.enum';
-import { DB } from '../schema/db';
 import { ChessGameStatus } from '../../modules/games/game/enums/chess-game-status.enum';
 import { ChessGameTermination } from '../../modules/games/game/enums/chess-game-termination.enum';
 
 const tableName = 'games';
-export async function up(db: Kysely<DB>): Promise<void> {
+
+export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .createTable(tableName)
     .addColumn('id', 'uuid', (col) => col.primaryKey())
     .addColumn('user_id', 'uuid', (col) =>
       col.references('users.id').onDelete('cascade').notNull(),
     )
-
-    // Game metadata
     .addColumn('pgn', 'text', (col) => col.notNull())
     .addColumn('source', 'varchar(50)', (col) =>
       col.check(
@@ -28,14 +26,12 @@ export async function up(db: Kysely<DB>): Promise<void> {
               ChessGameSource.LICHESS,
               ChessGameSource.MANUAL,
               ChessGameSource.OTB,
-            ] as const satisfies readonly `${ChessGameSource}`[]
+            ] as const
           ).map((code) => sql.lit(code)),
         )})`,
       ),
     )
     .addColumn('external_game_id', 'varchar(255)')
-
-    // Players
     .addColumn('white_player', 'varchar(100)', (col) => col.notNull())
     .addColumn('white_rating', 'integer')
     .addColumn('black_player', 'varchar(100)', (col) => col.notNull())
@@ -43,17 +39,12 @@ export async function up(db: Kysely<DB>): Promise<void> {
     .addColumn('user_color', 'varchar(10)', (col) =>
       col.check(
         sql`user_color IN (${sql.join(
-          (
-            [
-              ChessUserColor.White,
-              ChessUserColor.Black,
-            ] as const satisfies readonly `${ChessUserColor}`[]
-          ).map((code) => sql.lit(code)),
+          ([ChessUserColor.White, ChessUserColor.Black] as const).map((code) =>
+            sql.lit(code),
+          ),
         )})`,
       ),
     )
-
-    // Game details
     .addColumn('result', 'varchar(10)', (col) =>
       col
         .notNull()
@@ -65,7 +56,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
                 ChessResult.BlackWin,
                 ChessResult.Draw,
                 ChessResult.Ongoing,
-              ] as const satisfies readonly `${ChessResult}`[]
+              ] as const
             ).map((code) => sql.lit(code)),
           )})`,
         ),
@@ -86,7 +77,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
               ChessGameTermination.InsufficientMaterial,
               ChessGameTermination.TimeForfeit,
               ChessGameTermination.Abandoned,
-            ] as const satisfies readonly `${ChessGameTermination}`[]
+            ] as const
           ).map((code) => sql.lit(code)),
         )})`,
       ),
@@ -102,7 +93,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
               ChessTimeControlType.Rapid,
               ChessTimeControlType.Classical,
               ChessTimeControlType.Correspondence,
-            ] as const satisfies readonly `${ChessTimeControlType}`[]
+            ] as const
           ).map((code) => sql.lit(code)),
         )})`,
       ),
@@ -116,7 +107,7 @@ export async function up(db: Kysely<DB>): Promise<void> {
                 ChessGameStatus.Started,
                 ChessGameStatus.Finished,
                 ChessGameStatus.Aborted,
-              ] as const satisfies readonly `${ChessGameStatus}`[]
+              ] as const
             ).map((code) => sql.lit(code)),
           )})`,
         )
@@ -124,32 +115,25 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .addColumn('event_name', 'varchar(255)')
     .addColumn('played_at', 'timestamp', (col) => col.notNull())
-
-    // Opening
     .addColumn('opening_eco', 'varchar(10)')
     .addColumn('opening_name', 'varchar(255)')
-
-    // Analysis status
     .addColumn('analyzed', 'boolean', (col) => col.defaultTo(false))
     .addColumn('analysis_completed_at', 'timestamp')
     .addColumn('analysis_engine', 'varchar(50)')
-
-    // Game statistics (computed from analysis)
     .addColumn('total_moves', 'integer')
     .addColumn('user_accuracy', 'real')
     .addColumn('opponent_accuracy', 'real')
     .addColumn('user_avg_centipawn_loss', 'real')
     .addColumn('opponent_avg_centipawn_loss', 'real')
+    .addColumn('user_brilliants', 'integer', (col) => col.defaultTo(0))
+    .addColumn('user_greats', 'integer', (col) => col.defaultTo(0))
+    .addColumn('user_book_moves', 'integer', (col) => col.defaultTo(0))
     .addColumn('user_blunders', 'integer', (col) => col.defaultTo(0))
     .addColumn('user_mistakes', 'integer', (col) => col.defaultTo(0))
     .addColumn('user_inaccuracies', 'integer', (col) => col.defaultTo(0))
     .addColumn('user_time_trouble', 'boolean', (col) => col.defaultTo(false))
-
-    // Flags
     .addColumn('is_public', 'boolean', (col) => col.defaultTo(false))
     .addColumn('is_favorite', 'boolean', (col) => col.defaultTo(false))
-
-    // Metadata
     .addColumn('created_at', 'timestamp', (col) =>
       col.defaultTo(sql`CURRENT_TIMESTAMP`),
     )
@@ -158,8 +142,20 @@ export async function up(db: Kysely<DB>): Promise<void> {
     )
     .addColumn('deleted_at', 'timestamp')
     .execute();
+
+  await db.schema
+    .createIndex('idx_games_user_id')
+    .on(tableName)
+    .column('user_id')
+    .execute();
+
+  await db.schema
+    .createIndex('idx_games_played_at')
+    .on(tableName)
+    .column('played_at')
+    .execute();
 }
 
-export async function down(db: Kysely<DB>): Promise<void> {
-  await db.schema.dropTable('games').execute();
+export async function down(db: Kysely<unknown>): Promise<void> {
+  await db.schema.dropTable(tableName).execute();
 }
