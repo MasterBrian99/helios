@@ -7,6 +7,8 @@ import {
   GamePositionCreate,
 } from '../../database/schema/game-positions';
 import {
+  ExplanationSource,
+  ExplanationValidationStatus,
   Mistake,
   MistakeCreate,
   MistakeType,
@@ -71,6 +73,10 @@ export class AnalysisRepository {
     sequenceEnd?: number | null,
     difficulty?: number | null,
     tacticalFeatures?: TacticalFeaturesJson | null,
+    explanationSource?: ExplanationSource | null,
+    explanationValidationStatus?: ExplanationValidationStatus | null,
+    explanationValidationReason?: string | null,
+    analysisVersion?: string | null,
   ): Promise<Mistake> {
     const mistake: MistakeCreate = {
       mistakeId: getUUID(),
@@ -85,6 +91,10 @@ export class AnalysisRepository {
       bestMove,
       moveNumber,
       explanation: explanation ?? null,
+      explanationSource: explanationSource ?? null,
+      explanationValidationStatus: explanationValidationStatus ?? null,
+      explanationValidationReason: explanationValidationReason ?? null,
+      analysisVersion: analysisVersion ?? null,
       tacticalPattern: tacticalPattern ?? null,
       mateIn: mateIn ?? null,
       sequenceStart: sequenceStart ?? null,

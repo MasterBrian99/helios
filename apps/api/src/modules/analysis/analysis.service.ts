@@ -17,7 +17,22 @@ import {
   TacticalFeatures,
 } from './tactical-feature.service';
 import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
-import type { PatternAnalysis } from './motif-classifier.service';
+import {
+  MotifClassifierService,
+  PatternAnalysis,
+} from './motif-classifier.service';
+import {
+  SequenceMergerService,
+  TacticalSequence,
+} from './sequence-merger.service';
+
+interface SequencePatternMapping {
+  analysis: PatternAnalysis;
+  sequenceStart: number;
+  sequenceEnd: number;
+  mateIn: number | null;
+  difficulty: number | null;
+}
 
 @Injectable()
 export class AnalysisService {
@@ -31,6 +46,8 @@ export class AnalysisService {
     private readonly chessEngineService: ChessEngineService,
     private readonly tacticalFeatureService: TacticalFeatureService,
     private readonly mistakeBuilder: DeterministicMistakeBuilderService,
+    private readonly sequenceMergerService: SequenceMergerService,
+    private readonly motifClassifierService: MotifClassifierService,
   ) {}
 
   async queueGameAnalysis(
@@ -84,8 +101,21 @@ export class AnalysisService {
 
       this.logger.log(`Found ${userMistakes.length} user mistakes`);
 
+      const featuresByMove = this.buildFeaturesByMove(userMistakes);
+      const patternByMove = this.buildPatternByMove(result.positions);
+
       for (const mistake of userMistakes) {
-        await this.processMistake(mistake, gameId, userId);
+        const features =
+          featuresByMove.get(mistake.moveNumber) ??
+          this.extractFeaturesForMove(mistake);
+        const sequencePattern = patternByMove.get(mistake.moveNumber);
+        await this.processMistake(
+          mistake,
+          gameId,
+          userId,
+          features,
+          sequencePattern,
+        );
       }
 
       await this.updateGameStats(gameId, result);
@@ -101,16 +131,12 @@ export class AnalysisService {
     mistake: MoveAnalysis,
     gameId: string,
     userId: string,
+    features: TacticalFeatures,
+    sequencePattern?: SequencePatternMapping,
   ): Promise<void> {
-    const features = this.tacticalFeatureService.extractFeatures(
-      mistake.fen,
-      mistake.fenAfter,
-      mistake.movePlayed ?? '',
-      mistake.moveNumber,
-    );
-
-    const pattern = this.detectPattern(mistake, features);
-    const patternAnalysis = this.createPatternAnalysis(pattern);
+    const patternAnalysis =
+      sequencePattern?.analysis ??
+      this.buildFallbackPatternAnalysis(mistake, features);
     const severity = this.getSeverity(mistake.moveQuality);
 
     const structuredMistake = this.mistakeBuilder.build({
@@ -156,12 +182,16 @@ export class AnalysisService {
       severity,
       explanation.mistakeType,
       explanation.explanation,
-      pattern,
-      mateIn,
-      mistake.moveNumber,
-      mistake.moveNumber,
-      difficulty,
+      patternAnalysis.pattern,
+      sequencePattern?.mateIn ?? mateIn,
+      sequencePattern?.sequenceStart ?? mistake.moveNumber,
+      sequencePattern?.sequenceEnd ?? mistake.moveNumber,
+      sequencePattern?.difficulty ?? difficulty,
       tacticalFeaturesJson,
+      explanation.source,
+      explanation.validationStatus,
+      explanation.validationReason,
+      explanation.analysisVersion,
     );
 
     await this.analysisRepository.upsertMistakePattern(
@@ -170,7 +200,11 @@ export class AnalysisService {
     );
   }
 
-  private createPatternAnalysis(pattern: TacticalPattern): PatternAnalysis {
+  private buildFallbackPatternAnalysis(
+    mistake: MoveAnalysis,
+    features: TacticalFeatures,
+  ): PatternAnalysis {
+    const pattern = this.detectPattern(mistake, features);
     return {
       pattern,
       description: pattern,
@@ -178,6 +212,73 @@ export class AnalysisService {
       keyPiece: null,
       isCheckmateRelated: pattern === 'missed_mate' || pattern === 'back_rank_mate',
     };
+  }
+
+  private extractFeaturesForMove(mistake: MoveAnalysis): TacticalFeatures {
+    return this.tacticalFeatureService.extractFeatures(
+      mistake.fen,
+      mistake.fenAfter,
+      mistake.movePlayed ?? '',
+      mistake.moveNumber,
+    );
+  }
+
+  private buildFeaturesByMove(moves: MoveAnalysis[]): Map<number, TacticalFeatures> {
+    const featuresByMove = new Map<number, TacticalFeatures>();
+
+    for (const move of moves) {
+      featuresByMove.set(move.moveNumber, this.extractFeaturesForMove(move));
+    }
+
+    return featuresByMove;
+  }
+
+  private buildPatternByMove(
+    positions: MoveAnalysis[],
+  ): Map<number, SequencePatternMapping> {
+    const mapping = new Map<number, SequencePatternMapping>();
+    const sequences = this.sequenceMergerService.mergeSequences(positions);
+
+    for (const sequence of sequences) {
+      this.addSequenceToMap(sequence, mapping);
+    }
+
+    return mapping;
+  }
+
+  private addSequenceToMap(
+    sequence: TacticalSequence,
+    mapping: Map<number, SequencePatternMapping>,
+  ): void {
+    const keyMove = sequence.keyMove;
+    const features = this.tacticalFeatureService.extractFeatures(
+      keyMove.fen,
+      keyMove.fenAfter,
+      keyMove.movePlayed ?? '',
+      keyMove.moveNumber,
+    );
+    const analysis = this.motifClassifierService.classifySequence(
+      sequence,
+      features,
+    );
+
+    for (const position of sequence.positions) {
+      if (!position.isUserMove) continue;
+      if (
+        position.moveQuality !== 'blunder' &&
+        position.moveQuality !== 'mistake'
+      ) {
+        continue;
+      }
+
+      mapping.set(position.moveNumber, {
+        analysis,
+        sequenceStart: sequence.startMove,
+        sequenceEnd: sequence.endMove,
+        mateIn: sequence.mateIn,
+        difficulty: sequence.difficulty,
+      });
+    }
   }
 
   async getAnalysisResults(gameId: string, userId: string) {

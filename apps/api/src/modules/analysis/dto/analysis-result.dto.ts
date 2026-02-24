@@ -1,5 +1,10 @@
 import { MoveQuality } from '../../../database/schema/game-positions';
-import { MistakeType, Severity } from '../../../database/schema/mistakes';
+import {
+  ExplanationSource,
+  ExplanationValidationStatus,
+  MistakeType,
+  Severity,
+} from '../../../database/schema/mistakes';
 
 export class PositionDto {
   positionId: string;
@@ -28,6 +33,10 @@ export class MistakeDto {
   bestMove: string | null;
   moveNumber: number | null;
   explanation: string | null;
+  explanationSource?: ExplanationSource | null;
+  explanationValidationStatus?: ExplanationValidationStatus | null;
+  explanationValidationReason?: string | null;
+  analysisVersion?: string | null;
   hasBeenReviewed: boolean;
   createdAt: Date;
 }

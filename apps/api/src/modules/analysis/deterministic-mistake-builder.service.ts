@@ -25,7 +25,7 @@ export interface DeterministicMistakeInput {
 @Injectable()
 export class DeterministicMistakeBuilderService {
   build(input: DeterministicMistakeInput): StructuredMistake {
-    const centipawnLoss = Math.max(0, input.engineEvaluation.centipawnLoss);
+    const centipawnLoss = this.safeNumber(input.engineEvaluation.centipawnLoss);
 
     return {
       phase: input.phase,
@@ -47,7 +47,7 @@ export class DeterministicMistakeBuilderService {
   }
 
   private buildMaterial(input: DeterministicMistakeInput): StructuredMistake['material'] {
-    const materialLost = Math.max(0, Math.round(input.features.materialSwing));
+    const materialLost = this.safeNumber(input.features.materialSwing);
     const immediateLoss = materialLost > 0;
 
     return {
@@ -84,9 +84,11 @@ export class DeterministicMistakeBuilderService {
   }
 
   private buildComparison(input: DeterministicMistakeInput): StructuredMistake['comparison'] {
+    const movePlayed = input.movePlayed?.trim() || 'unknown';
+    const bestMove = input.bestMove?.trim() || 'unknown';
     return {
-      movePlayed: input.movePlayed,
-      bestMove: input.bestMove ?? 'unknown',
+      movePlayed,
+      bestMove,
       bestMoveBenefits: this.bestMoveBenefits(input),
       movePlayedConsequences: this.movePlayedConsequences(input),
     };
@@ -145,7 +147,7 @@ export class DeterministicMistakeBuilderService {
       );
     }
 
-    const materialLost = Math.max(0, Math.round(input.features.materialSwing));
+    const materialLost = this.safeNumber(input.features.materialSwing);
     if (materialLost > 0) {
       consequences.push(`loses ${materialLost} points of material`);
     }
@@ -188,5 +190,10 @@ export class DeterministicMistakeBuilderService {
     } catch {
       return [];
     }
+  }
+
+  private safeNumber(value: number | null | undefined): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+    return Math.max(0, Math.round(value));
   }
 }

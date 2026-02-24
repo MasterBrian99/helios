@@ -11,6 +11,11 @@ export type MistakeType =
   | 'endgame_error';
 
 export type Severity = 'inaccuracy' | 'mistake' | 'blunder';
+export type ExplanationSource = 'llm' | 'deterministic_fallback';
+export type ExplanationValidationStatus =
+  | 'passed'
+  | 'failed_then_fallback'
+  | 'llm_unavailable';
 
 export type TacticalPattern =
   | 'forced_mate'
@@ -53,6 +58,10 @@ export interface MistakeTable {
   bestMove: string | null;
   moveNumber: number | null;
   explanation: string | null;
+  explanationSource: ExplanationSource | null;
+  explanationValidationStatus: ExplanationValidationStatus | null;
+  explanationValidationReason: string | null;
+  analysisVersion: string | null;
   hasBeenReviewed: Generated<boolean>;
   createdAt: CreatedAt;
   tacticalPattern: TacticalPattern | null;

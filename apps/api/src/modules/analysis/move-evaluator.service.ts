@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Chess } from 'chess.js';
 import { ChessEngineService } from '../../chess-engines';
 import { MoveQuality } from '../../database/schema/game-positions';
@@ -53,9 +54,15 @@ export interface GameAnalysisResult {
 @Injectable()
 export class MoveEvaluatorService {
   private readonly logger = new Logger(MoveEvaluatorService.name);
-  private readonly analysisDepth = 15;
+  private readonly analysisDepth: number;
 
-  constructor(private readonly chessEngine: ChessEngineService) {}
+  constructor(
+    private readonly chessEngine: ChessEngineService,
+    private readonly configService: ConfigService,
+  ) {
+    const rawDepth = this.configService.get<number>('ANALYSIS_ENGINE_DEPTH') ?? 20;
+    this.analysisDepth = Math.min(25, Math.max(10, rawDepth));
+  }
 
   async analyzeGame(
     pgn: string,
@@ -155,6 +162,12 @@ export class MoveEvaluatorService {
         this.logger.error(`Error evaluating position after move ${moveNumber}`);
       }
 
+      if (evalBefore === null || evalAfter === null) {
+        this.logger.warn(
+          `Null engine eval at move ${moveNumber}; before=${evalBefore}, after=${evalAfter}, mateBefore=${mateBefore}, mateAfter=${mateAfter}`,
+        );
+      }
+
       const centipawnLoss = this.calculateCentipawnLoss(
         evalBefore,
         evalAfter,
@@ -181,7 +194,10 @@ export class MoveEvaluatorService {
         evalAfter,
         mateBefore,
         mateAfter,
-        centipawnLoss: isUserMove ? centipawnLoss : null,
+        centipawnLoss:
+          isUserMove && Number.isFinite(centipawnLoss)
+            ? Math.max(0, centipawnLoss)
+            : null,
         bestMove,
         bestMoveEval,
         moveQuality,

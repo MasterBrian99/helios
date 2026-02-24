@@ -18,6 +18,7 @@ const envs = z.object({
   CHESS_MODEL: z.enum(['stockfish', 'lc0', 'komodo']).default('stockfish'),
   CHESS_ENGINE_PATH: z.string().optional(),
   CHESS_ENGINE_DEPTH: z.coerce.number().optional(),
+  ANALYSIS_ENGINE_DEPTH: z.coerce.number().optional().default(20),
   LC0_WEIGHTS_PATH: z.string().optional(),
 });
 
