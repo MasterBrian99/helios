@@ -47,6 +47,9 @@ export interface GameTable {
   opponentAccuracy: number | null;
   userAvgCentipawnLoss: number | null;
   opponentAvgCentipawnLoss: number | null;
+  userBrilliants: Generated<number>;
+  userGreats: Generated<number>;
+  userBookMoves: Generated<number>;
   userBlunders: Generated<number>;
   userMistakes: Generated<number>;
   userInaccuracies: Generated<number>;

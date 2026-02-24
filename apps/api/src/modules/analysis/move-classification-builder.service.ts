@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 import type { PatternAnalysis } from './motif-classifier.service';
 import { StructuredMistake } from './structured-mistake.interface';
 import { TacticalFeatures } from './tactical-feature.service';
+import { MoveClassification } from '../../database/schema/move-classifications';
 
 export interface DeterministicEngineEvaluation {
   centipawnLoss: number;
@@ -12,7 +13,7 @@ export interface DeterministicEngineEvaluation {
   evalAfter: number | null;
 }
 
-export interface DeterministicMistakeInput {
+export interface MoveClassificationBuilderInput {
   fen: string;
   movePlayed: string;
   bestMove: string | null;
@@ -20,17 +21,18 @@ export interface DeterministicMistakeInput {
   engineEvaluation: DeterministicEngineEvaluation;
   features: TacticalFeatures;
   patternAnalysis: PatternAnalysis;
+  classification: MoveClassification;
 }
 
 @Injectable()
-export class DeterministicMistakeBuilderService {
-  build(input: DeterministicMistakeInput): StructuredMistake {
+export class MoveClassificationBuilderService {
+  build(input: MoveClassificationBuilderInput): StructuredMistake {
     const centipawnLoss = this.safeNumber(input.engineEvaluation.centipawnLoss);
 
     return {
       phase: input.phase,
       centipawnLoss,
-      severity: this.classifySeverity(centipawnLoss),
+      classification: input.classification,
       material: this.buildMaterial(input),
       tactical: this.buildTactical(input),
       positional: this.buildPositional(input),
@@ -38,15 +40,9 @@ export class DeterministicMistakeBuilderService {
     };
   }
 
-  private classifySeverity(
-    centipawnLoss: number,
-  ): 'inaccuracy' | 'mistake' | 'blunder' {
-    if (centipawnLoss >= 100) return 'blunder';
-    if (centipawnLoss >= 50) return 'mistake';
-    return 'inaccuracy';
-  }
-
-  private buildMaterial(input: DeterministicMistakeInput): StructuredMistake['material'] {
+  private buildMaterial(
+    input: MoveClassificationBuilderInput,
+  ): StructuredMistake['material'] {
     const materialLost = this.safeNumber(input.features.materialSwing);
     const immediateLoss = materialLost > 0;
 
@@ -56,7 +52,9 @@ export class DeterministicMistakeBuilderService {
     };
   }
 
-  private buildTactical(input: DeterministicMistakeInput): StructuredMistake['tactical'] {
+  private buildTactical(
+    input: MoveClassificationBuilderInput,
+  ): StructuredMistake['tactical'] {
     const pattern = input.patternAnalysis.pattern;
     const missedMate = this.isMissedMate(input);
 
@@ -73,17 +71,22 @@ export class DeterministicMistakeBuilderService {
     };
   }
 
-  private buildPositional(input: DeterministicMistakeInput): StructuredMistake['positional'] {
+  private buildPositional(
+    input: MoveClassificationBuilderInput,
+  ): StructuredMistake['positional'] {
     return {
       undevelopedPieces: this.findUndevelopedPieces(input.fen, input.phase),
       blockedPieces: [],
       weakenedSquares: [],
-      lostCenterControl: input.phase !== 'endgame' && input.engineEvaluation.centipawnLoss >= 80,
+      lostCenterControl:
+        input.phase !== 'endgame' && input.engineEvaluation.centipawnLoss >= 80,
       openFileConceded: false,
     };
   }
 
-  private buildComparison(input: DeterministicMistakeInput): StructuredMistake['comparison'] {
+  private buildComparison(
+    input: MoveClassificationBuilderInput,
+  ): StructuredMistake['comparison'] {
     const movePlayed = input.movePlayed?.trim() || 'unknown';
     const bestMove = input.bestMove?.trim() || 'unknown';
     return {
@@ -94,7 +97,7 @@ export class DeterministicMistakeBuilderService {
     };
   }
 
-  private isMissedMate(input: DeterministicMistakeInput): boolean {
+  private isMissedMate(input: MoveClassificationBuilderInput): boolean {
     if (input.patternAnalysis.pattern === 'missed_mate') {
       return true;
     }
@@ -107,19 +110,23 @@ export class DeterministicMistakeBuilderService {
     return mateAfter !== null && mateAfter < 0;
   }
 
-  private resolveMateDistance(input: DeterministicMistakeInput): number | undefined {
+  private resolveMateDistance(
+    input: MoveClassificationBuilderInput,
+  ): number | undefined {
     const { mateBefore, mateAfter } = input.engineEvaluation;
     if (mateBefore !== null && mateBefore > 0) return mateBefore;
     if (mateAfter !== null && mateAfter < 0) return Math.abs(mateAfter);
     return undefined;
   }
 
-  private bestMoveBenefits(input: DeterministicMistakeInput): string[] {
+  private bestMoveBenefits(input: MoveClassificationBuilderInput): string[] {
     const benefits: string[] = [];
 
     if (this.isMissedMate(input)) {
       const mateIn = this.resolveMateDistance(input);
-      benefits.push(mateIn ? `keeps a mate in ${mateIn}` : 'keeps a mating attack');
+      benefits.push(
+        mateIn ? `keeps a mate in ${mateIn}` : 'keeps a mating attack',
+      );
     }
 
     if (input.features.kingExposed) {
@@ -137,13 +144,17 @@ export class DeterministicMistakeBuilderService {
     return benefits;
   }
 
-  private movePlayedConsequences(input: DeterministicMistakeInput): string[] {
+  private movePlayedConsequences(
+    input: MoveClassificationBuilderInput,
+  ): string[] {
     const consequences: string[] = [];
 
     if (this.isMissedMate(input)) {
       const mateIn = this.resolveMateDistance(input);
       consequences.push(
-        mateIn ? `misses a forcing line with mate in ${mateIn}` : 'misses a forcing mate sequence',
+        mateIn
+          ? `misses a forcing line with mate in ${mateIn}`
+          : 'misses a forcing mate sequence',
       );
     }
 

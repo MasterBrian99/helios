@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Chess } from 'chess.js';
-import { TacticalPattern } from '../../database/schema/mistakes';
+import { TacticalPattern } from '../../database/schema/move-classifications';
 import { TacticalFeatures } from './tactical-feature.service';
 import { TacticalSequence } from './sequence-merger.service';
 

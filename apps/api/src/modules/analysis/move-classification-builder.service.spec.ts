@@ -1,9 +1,9 @@
-import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
+import { MoveClassificationBuilderService } from './move-classification-builder.service';
 import { TacticalFeatures } from './tactical-feature.service';
 import { PatternAnalysis } from './motif-classifier.service';
 
-describe('DeterministicMistakeBuilderService', () => {
-  const service = new DeterministicMistakeBuilderService();
+describe('MoveClassificationBuilderService', () => {
+  const service = new MoveClassificationBuilderService();
 
   const features: TacticalFeatures = {
     isCheck: false,
@@ -44,11 +44,13 @@ describe('DeterministicMistakeBuilderService', () => {
       },
       features,
       patternAnalysis,
+      classification: 'mistake',
     });
 
     expect(result.comparison.bestMoveBenefits.length).toBeGreaterThan(0);
     expect(result.comparison.movePlayedConsequences.length).toBeGreaterThan(0);
     expect(result.centipawnLoss).toBe(70);
+    expect(result.classification).toBe('mistake');
   });
 
   it('detects missed mate from engine evaluation fields', () => {
@@ -66,9 +68,33 @@ describe('DeterministicMistakeBuilderService', () => {
       },
       features,
       patternAnalysis,
+      classification: 'blunder',
     });
 
     expect(result.tactical.missedMate).toBe(true);
     expect(result.tactical.mateIn).toBe(3);
+    expect(result.classification).toBe('blunder');
+  });
+
+  it('handles brilliant classification', () => {
+    const result = service.build({
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      movePlayed: 'Nf3',
+      bestMove: 'Nf3',
+      phase: 'opening',
+      engineEvaluation: {
+        centipawnLoss: 0,
+        mateBefore: null,
+        mateAfter: null,
+        evalBefore: 20,
+        evalAfter: 20,
+      },
+      features,
+      patternAnalysis,
+      classification: 'brilliant',
+    });
+
+    expect(result.classification).toBe('brilliant');
+    expect(result.centipawnLoss).toBe(0);
   });
 });

@@ -4,10 +4,10 @@ import { InjectKysely } from 'nestjs-kysely';
 import { DB } from '../../database/schema/db';
 import { Game } from '../../database/schema/games';
 import {
-  Severity,
   TacticalFeaturesJson,
   TacticalPattern,
-} from '../../database/schema/mistakes';
+  MoveClassification,
+} from '../../database/schema/move-classifications';
 import { MoveEvaluatorService, MoveAnalysis } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalysisRepository } from './analysis.repository';
@@ -16,7 +16,7 @@ import {
   TacticalFeatureService,
   TacticalFeatures,
 } from './tactical-feature.service';
-import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
+import { MoveClassificationBuilderService } from './move-classification-builder.service';
 import {
   MotifClassifierService,
   PatternAnalysis,
@@ -45,7 +45,7 @@ export class AnalysisService {
     private readonly analysisRepository: AnalysisRepository,
     private readonly chessEngineService: ChessEngineService,
     private readonly tacticalFeatureService: TacticalFeatureService,
-    private readonly mistakeBuilder: DeterministicMistakeBuilderService,
+    private readonly classificationBuilder: MoveClassificationBuilderService,
     private readonly sequenceMergerService: SequenceMergerService,
     private readonly motifClassifierService: MotifClassifierService,
   ) {}
@@ -137,9 +137,9 @@ export class AnalysisService {
     const patternAnalysis =
       sequencePattern?.analysis ??
       this.buildFallbackPatternAnalysis(mistake, features);
-    const severity = this.getSeverity(mistake.moveQuality);
+    const classification = this.getClassification(mistake.moveQuality);
 
-    const structuredMistake = this.mistakeBuilder.build({
+    const structuredMistake = this.classificationBuilder.build({
       fen: mistake.fen,
       movePlayed: mistake.movePlayed ?? '',
       bestMove: mistake.bestMove,
@@ -153,6 +153,7 @@ export class AnalysisService {
       },
       features,
       patternAnalysis,
+      classification,
     });
 
     const explanation =
@@ -170,7 +171,7 @@ export class AnalysisService {
     const mateIn = this.getMateDistance(mistake);
     const difficulty = this.calculateDifficulty(mistake, features);
 
-    await this.analysisRepository.createMistake(
+    await this.analysisRepository.createClassification(
       userId,
       gameId,
       null,
@@ -179,7 +180,7 @@ export class AnalysisService {
       mistake.bestMove,
       mistake.moveNumber,
       mistake.centipawnLoss ?? 0,
-      severity,
+      classification,
       explanation.mistakeType,
       explanation.explanation,
       patternAnalysis.pattern,
@@ -194,7 +195,7 @@ export class AnalysisService {
       explanation.analysisVersion,
     );
 
-    await this.analysisRepository.upsertMistakePattern(
+    await this.analysisRepository.upsertClassificationPattern(
       userId,
       explanation.mistakeType,
     );
@@ -210,7 +211,8 @@ export class AnalysisService {
       description: pattern,
       difficulty: 50,
       keyPiece: null,
-      isCheckmateRelated: pattern === 'missed_mate' || pattern === 'back_rank_mate',
+      isCheckmateRelated:
+        pattern === 'missed_mate' || pattern === 'back_rank_mate',
     };
   }
 
@@ -223,7 +225,9 @@ export class AnalysisService {
     );
   }
 
-  private buildFeaturesByMove(moves: MoveAnalysis[]): Map<number, TacticalFeatures> {
+  private buildFeaturesByMove(
+    moves: MoveAnalysis[],
+  ): Map<number, TacticalFeatures> {
     const featuresByMove = new Map<number, TacticalFeatures>();
 
     for (const move of moves) {
@@ -285,7 +289,8 @@ export class AnalysisService {
     const game = await this.getGame(gameId, userId);
 
     const positions = await this.analysisRepository.getPositionsByGame(gameId);
-    const mistakes = await this.analysisRepository.getMistakesByGame(gameId);
+    const classifications =
+      await this.analysisRepository.getClassificationsByGame(gameId);
 
     return {
       analysis: {
@@ -296,26 +301,33 @@ export class AnalysisService {
         userAccuracy: game.userAccuracy,
         opponentAccuracy: game.opponentAccuracy,
         userAvgCentipawnLoss: game.userAvgCentipawnLoss,
+        userBrilliants: game.userBrilliants,
+        userGreats: game.userGreats,
+        userBookMoves: game.userBookMoves,
         userBlunders: game.userBlunders,
         userMistakes: game.userMistakes,
         userInaccuracies: game.userInaccuracies,
       },
       positions,
-      mistakes,
+      classifications,
     };
   }
 
-  async getMistakesByGame(gameId: string, userId: string) {
+  async getClassificationsByGame(gameId: string, userId: string) {
     await this.getGame(gameId, userId);
-    return this.analysisRepository.getMistakesByGame(gameId);
+    return this.analysisRepository.getClassificationsByGame(gameId);
   }
 
-  async getUserMistakePatterns(userId: string) {
-    return this.analysisRepository.getMistakePatterns(userId);
+  async getUserClassificationPatterns(userId: string) {
+    return this.analysisRepository.getClassificationPatterns(userId);
   }
 
-  async getUserMistakes(userId: string, limit = 50, offset = 0) {
-    return this.analysisRepository.getMistakesByUser(userId, limit, offset);
+  async getUserClassifications(userId: string, limit = 50, offset = 0) {
+    return this.analysisRepository.getClassificationsByUser(
+      userId,
+      limit,
+      offset,
+    );
   }
 
   private detectPattern(
@@ -412,21 +424,24 @@ export class AnalysisService {
   }
 
   private async deleteExistingAnalysis(gameId: string): Promise<void> {
-    await this.analysisRepository.deleteMistakesByGame(gameId);
+    await this.analysisRepository.deleteClassificationsByGame(gameId);
     await this.analysisRepository.deletePositionsByGame(gameId);
   }
 
-  private getSeverity(moveQuality: string): Severity {
-    switch (moveQuality) {
-      case 'blunder':
-        return 'blunder';
-      case 'mistake':
-        return 'mistake';
-      case 'inaccuracy':
-        return 'inaccuracy';
-      default:
-        return 'mistake';
+  private getClassification(moveQuality: string): MoveClassification {
+    const validClassifications: MoveClassification[] = [
+      'brilliant',
+      'great',
+      'good',
+      'book',
+      'inaccuracy',
+      'mistake',
+      'blunder',
+    ];
+    if (validClassifications.includes(moveQuality as MoveClassification)) {
+      return moveQuality as MoveClassification;
     }
+    return 'good';
   }
 
   private async updateGameStats(
@@ -446,6 +461,9 @@ export class AnalysisService {
         userAccuracy: result.userAccuracy,
         opponentAccuracy: result.opponentAccuracy,
         userAvgCentipawnLoss: result.userAvgCentipawnLoss,
+        userBrilliants: result.userBrilliants,
+        userGreats: result.userGreats,
+        userBookMoves: result.userBookMoves,
         userBlunders: result.userBlunders,
         userMistakes: result.userMistakes,
         userInaccuracies: result.userInaccuracies,

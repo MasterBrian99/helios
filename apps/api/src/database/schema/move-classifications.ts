@@ -1,6 +1,15 @@
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 import { CreatedAt } from './common/datetime';
 
+export type MoveClassification =
+  | 'brilliant'
+  | 'great'
+  | 'good'
+  | 'book'
+  | 'inaccuracy'
+  | 'mistake'
+  | 'blunder';
+
 export type MistakeType =
   | 'tactical_blunder'
   | 'positional_error'
@@ -10,7 +19,6 @@ export type MistakeType =
   | 'opening_error'
   | 'endgame_error';
 
-export type Severity = 'inaccuracy' | 'mistake' | 'blunder';
 export type ExplanationSource = 'llm' | 'deterministic_fallback';
 export type ExplanationValidationStatus =
   | 'passed'
@@ -45,13 +53,13 @@ export interface TacticalFeaturesJson {
   phase: string;
 }
 
-export interface MistakeTable {
-  mistakeId: Generated<string>;
+export interface MoveClassificationTable {
+  classificationId: Generated<string>;
   userId: string;
   gameId: string;
   positionId: string | null;
-  mistakeType: MistakeType;
-  severity: Severity;
+  classification: MoveClassification;
+  mistakeType: MistakeType | null;
   centipawnLoss: number | null;
   fen: string;
   movePlayed: string | null;
@@ -72,6 +80,6 @@ export interface MistakeTable {
   tacticalFeatures: TacticalFeaturesJson | null;
 }
 
-export type Mistake = Selectable<MistakeTable>;
-export type MistakeCreate = Insertable<MistakeTable>;
-export type MistakeUpdate = Updateable<MistakeTable>;
+export type MoveClassificationRecord = Selectable<MoveClassificationTable>;
+export type MoveClassificationCreate = Insertable<MoveClassificationTable>;
+export type MoveClassificationUpdate = Updateable<MoveClassificationTable>;

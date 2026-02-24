@@ -15,7 +15,7 @@ describe('LlmExplainerService', () => {
   const baseData: StructuredMistake = {
     phase: 'middlegame',
     centipawnLoss: 140,
-    severity: 'blunder',
+    classification: 'blunder',
     material: {
       immediateLoss: true,
       materialLost: 3,

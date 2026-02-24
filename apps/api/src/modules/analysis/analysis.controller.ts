@@ -50,18 +50,18 @@ export class AnalysisController {
     return this.analysisService.getAnalysisResults(gameId, userId);
   }
 
-  @Get(':gameId/mistakes')
-  @ApiOperation({ summary: 'Get mistakes for a specific game' })
-  async getMistakes(
+  @Get(':gameId/classifications')
+  @ApiOperation({ summary: 'Get classifications for a specific game' })
+  async getClassifications(
     @Param('gameId') gameId: string,
     @Auth('sub') userId: string,
   ) {
-    return this.analysisService.getMistakesByGame(gameId, userId);
+    return this.analysisService.getClassificationsByGame(gameId, userId);
   }
 
-  @Get('mistakes')
-  @ApiOperation({ summary: 'Get user mistakes with pagination' })
-  async getUserMistakes(
+  @Get('classifications')
+  @ApiOperation({ summary: 'Get user classifications with pagination' })
+  async getUserClassifications(
     @Auth('sub') userId: string,
 
     @Query('limit') limit?: string,
@@ -69,12 +69,16 @@ export class AnalysisController {
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 50;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
-    return this.analysisService.getUserMistakes(userId, limitNum, offsetNum);
+    return this.analysisService.getUserClassifications(
+      userId,
+      limitNum,
+      offsetNum,
+    );
   }
 
   @Get('patterns')
-  @ApiOperation({ summary: 'Get user mistake patterns' })
-  async getMistakePatterns(@Request() req: { user: { sub: string } }) {
-    return this.analysisService.getUserMistakePatterns(req.user.sub);
+  @ApiOperation({ summary: 'Get user classification patterns' })
+  async getClassificationPatterns(@Request() req: { user: { sub: string } }) {
+    return this.analysisService.getUserClassificationPatterns(req.user.sub);
   }
 }

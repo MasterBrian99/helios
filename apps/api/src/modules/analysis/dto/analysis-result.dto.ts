@@ -3,8 +3,8 @@ import {
   ExplanationSource,
   ExplanationValidationStatus,
   MistakeType,
-  Severity,
-} from '../../../database/schema/mistakes';
+  MoveClassification,
+} from '../../../database/schema/move-classifications';
 
 export class PositionDto {
   positionId: string;
@@ -21,12 +21,12 @@ export class PositionDto {
   createdAt: Date;
 }
 
-export class MistakeDto {
-  mistakeId: string;
+export class MoveClassificationDto {
+  classificationId: string;
   gameId: string;
   positionId: string | null;
-  mistakeType: MistakeType;
-  severity: Severity;
+  classification: MoveClassification;
+  mistakeType: MistakeType | null;
   centipawnLoss: number | null;
   fen: string;
   movePlayed: string | null;
@@ -41,7 +41,7 @@ export class MistakeDto {
   createdAt: Date;
 }
 
-export class MistakePatternDto {
+export class ClassificationPatternDto {
   patternId: string;
   mistakeType: MistakeType;
   occurrenceCount: number;
@@ -58,6 +58,9 @@ export class AnalysisResultDto {
   userAccuracy: number | null;
   opponentAccuracy: number | null;
   userAvgCentipawnLoss: number | null;
+  userBrilliants: number;
+  userGreats: number;
+  userBookMoves: number;
   userBlunders: number;
   userMistakes: number;
   userInaccuracies: number;
@@ -66,7 +69,7 @@ export class AnalysisResultDto {
 export class GameAnalysisResponseDto {
   analysis: AnalysisResultDto;
   positions: PositionDto[];
-  mistakes: MistakeDto[];
+  classifications: MoveClassificationDto[];
 }
 
 export class QueueAnalysisResponseDto {

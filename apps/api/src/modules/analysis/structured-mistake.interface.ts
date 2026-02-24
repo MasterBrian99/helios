@@ -1,7 +1,9 @@
+import { MoveClassification } from '../../database/schema/move-classifications';
+
 export interface StructuredMistake {
   phase: 'opening' | 'middlegame' | 'endgame';
   centipawnLoss: number;
-  severity: 'inaccuracy' | 'mistake' | 'blunder';
+  classification: MoveClassification;
 
   material: {
     immediateLoss: boolean;

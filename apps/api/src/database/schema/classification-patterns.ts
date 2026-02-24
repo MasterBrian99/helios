@@ -6,7 +6,7 @@ import {
   ColumnType,
 } from 'kysely';
 import { CreatedAt, UpdatedAt } from './common/datetime';
-import { MistakeType } from './mistakes';
+import { MistakeType } from './move-classifications';
 
 export type TimestampColumn = ColumnType<
   Date,
@@ -14,7 +14,7 @@ export type TimestampColumn = ColumnType<
   string | undefined
 >;
 
-export interface MistakePatternTable {
+export interface ClassificationPatternTable {
   patternId: Generated<string>;
   userId: string;
   mistakeType: MistakeType;
@@ -25,6 +25,8 @@ export interface MistakePatternTable {
   updatedAt: UpdatedAt;
 }
 
-export type MistakePattern = Selectable<MistakePatternTable>;
-export type MistakePatternCreate = Insertable<MistakePatternTable>;
-export type MistakePatternUpdate = Updateable<MistakePatternTable>;
+export type ClassificationPattern = Selectable<ClassificationPatternTable>;
+export type ClassificationPatternCreate =
+  Insertable<ClassificationPatternTable>;
+export type ClassificationPatternUpdate =
+  Updateable<ClassificationPatternTable>;

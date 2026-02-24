@@ -7,7 +7,7 @@ import {
   ExplanationSource,
   ExplanationValidationStatus,
   MistakeType,
-} from '../../database/schema/mistakes';
+} from '../../database/schema/move-classifications';
 import { StructuredMistake } from './structured-mistake.interface';
 
 const ANALYSIS_VERSION = 'v2-deterministic-core';
@@ -130,7 +130,6 @@ export class LlmExplainerService {
     retry: boolean,
   ): string {
     const allowedTactics = this.allowedTactics(data);
-    const forbiddenTactics = this.forbiddenTactics(data);
     const materialLine = data.material.immediateLoss
       ? `${data.material.materialLost} points are lost immediately`
       : 'no immediate material loss';
@@ -165,7 +164,7 @@ STYLE RULES:
 
 VERIFIED_FACTS:
 phase=${data.phase}
-severity=${data.severity}
+classification=${data.classification}
 material=${materialLine}
 missedMate=${data.tactical.missedMate}${data.tactical.mateIn ? ` (mateIn=${data.tactical.mateIn})` : ''}
 hangingPiece=${data.tactical.hangingPiece}
@@ -264,7 +263,7 @@ Return only a valid JSON object. Do not include markdown fences.`,
     return { explanation };
   }
 
-  private tryParseJsonObject(text: string): unknown | null {
+  private tryParseJsonObject(text: string): unknown {
     const trimmed = text.trim();
     try {
       return JSON.parse(trimmed);
@@ -334,16 +333,6 @@ Return only a valid JSON object. Do not include markdown fences.`,
     if (data.tactical.hangingPiece) tactics.push('hanging piece');
     if (data.tactical.backRankWeak) tactics.push('back rank weakness');
     return tactics;
-  }
-
-  private forbiddenTactics(data: StructuredMistake): string[] {
-    const blocked: string[] = [];
-    if (!data.tactical.fork) blocked.push('fork');
-    if (!data.tactical.pin) blocked.push('pin');
-    if (!data.tactical.skewer) blocked.push('skewer');
-    if (!data.tactical.discoveredAttack) blocked.push('discovered attack');
-    if (!data.tactical.missedMate) blocked.push('mate');
-    return blocked;
   }
 
   private generateDeterministicFallback(data: StructuredMistake): string {

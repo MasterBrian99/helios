@@ -7,7 +7,8 @@ import { LlmExplainerService } from './llm-explainer.service';
 import { AnalyzeGameJob } from './jobs/analyze-game.job';
 import { ChessEnginesModule } from '../../chess-engines';
 import { TacticalFeatureService } from './tactical-feature.service';
-import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
+import { MoveClassificationBuilderService } from './move-classification-builder.service';
+import { MoveClassificationService } from './move-classification.service';
 import { SequenceMergerService } from './sequence-merger.service';
 import { MotifClassifierService } from './motif-classifier.service';
 
@@ -21,7 +22,8 @@ import { MotifClassifierService } from './motif-classifier.service';
     LlmExplainerService,
     AnalyzeGameJob,
     TacticalFeatureService,
-    DeterministicMistakeBuilderService,
+    MoveClassificationBuilderService,
+    MoveClassificationService,
     SequenceMergerService,
     MotifClassifierService,
   ],

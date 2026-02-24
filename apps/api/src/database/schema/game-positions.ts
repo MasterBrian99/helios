@@ -1,7 +1,14 @@
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 import { CreatedAt } from './common/datetime';
 
-export type MoveQuality = 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+export type MoveQuality =
+  | 'brilliant'
+  | 'great'
+  | 'good'
+  | 'book'
+  | 'inaccuracy'
+  | 'mistake'
+  | 'blunder';
 
 export interface GamePositionTable {
   positionId: Generated<string>;

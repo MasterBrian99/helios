@@ -9,17 +9,17 @@ import {
 import {
   ExplanationSource,
   ExplanationValidationStatus,
-  Mistake,
-  MistakeCreate,
+  MoveClassificationRecord,
+  MoveClassificationCreate,
   MistakeType,
-  Severity,
   TacticalPattern,
   TacticalFeaturesJson,
-} from '../../database/schema/mistakes';
+  MoveClassification,
+} from '../../database/schema/move-classifications';
 import {
-  MistakePattern,
-  MistakePatternCreate,
-} from '../../database/schema/mistake-patterns';
+  ClassificationPattern,
+  ClassificationPatternCreate,
+} from '../../database/schema/classification-patterns';
 import { getUUID } from '../../utils/uuid-gen';
 import { MoveAnalysis } from './move-evaluator.service';
 
@@ -55,7 +55,7 @@ export class AnalysisRepository {
     return result;
   }
 
-  async createMistake(
+  async createClassification(
     userId: string,
     gameId: string,
     positionId: string | null,
@@ -64,8 +64,8 @@ export class AnalysisRepository {
     bestMove: string | null,
     moveNumber: number,
     centipawnLoss: number,
-    severity: Severity,
-    mistakeType: MistakeType,
+    classification: MoveClassification,
+    mistakeType: MistakeType | null,
     explanation?: string,
     tacticalPattern?: TacticalPattern | null,
     mateIn?: number | null,
@@ -77,14 +77,14 @@ export class AnalysisRepository {
     explanationValidationStatus?: ExplanationValidationStatus | null,
     explanationValidationReason?: string | null,
     analysisVersion?: string | null,
-  ): Promise<Mistake> {
-    const mistake: MistakeCreate = {
-      mistakeId: getUUID(),
+  ): Promise<MoveClassificationRecord> {
+    const record: MoveClassificationCreate = {
+      classificationId: getUUID(),
       userId,
       gameId,
       positionId,
+      classification,
       mistakeType,
-      severity,
       centipawnLoss,
       fen,
       movePlayed,
@@ -104,28 +104,28 @@ export class AnalysisRepository {
     };
 
     const result = await this.db
-      .insertInto('mistakes')
-      .values(mistake)
+      .insertInto('moveClassifications')
+      .values(record)
       .returningAll()
       .executeTakeFirstOrThrow();
 
     return result;
   }
 
-  async updateMistakeExplanation(
-    mistakeId: string,
+  async updateClassificationExplanation(
+    classificationId: string,
     explanation: string,
     mistakeType: MistakeType,
   ): Promise<void> {
     await this.db
-      .updateTable('mistakes')
+      .updateTable('moveClassifications')
       .set({ explanation, mistakeType })
-      .where('mistakeId', '=', mistakeId)
+      .where('classificationId', '=', classificationId)
       .execute();
   }
 
-  async updateMistakeTacticalInfo(
-    mistakeId: string,
+  async updateClassificationTacticalInfo(
+    classificationId: string,
     tacticalPattern: TacticalPattern,
     mateIn: number | null,
     sequenceStart: number | null,
@@ -134,7 +134,7 @@ export class AnalysisRepository {
     tacticalFeatures: TacticalFeaturesJson | null,
   ): Promise<void> {
     await this.db
-      .updateTable('mistakes')
+      .updateTable('moveClassifications')
       .set({
         tacticalPattern,
         mateIn,
@@ -143,16 +143,16 @@ export class AnalysisRepository {
         difficulty,
         tacticalFeatures,
       })
-      .where('mistakeId', '=', mistakeId)
+      .where('classificationId', '=', classificationId)
       .execute();
   }
 
-  async upsertMistakePattern(
+  async upsertClassificationPattern(
     userId: string,
     mistakeType: MistakeType,
-  ): Promise<MistakePattern> {
+  ): Promise<ClassificationPattern> {
     const existing = await this.db
-      .selectFrom('mistakePatterns')
+      .selectFrom('classificationPatterns')
       .selectAll()
       .where('userId', '=', userId)
       .where('mistakeType', '=', mistakeType)
@@ -161,7 +161,7 @@ export class AnalysisRepository {
     if (existing) {
       const now = new Date().toISOString();
       const updated = await this.db
-        .updateTable('mistakePatterns')
+        .updateTable('classificationPatterns')
         .set({
           occurrenceCount: existing.occurrenceCount + 1,
           lastOccurrence: now,
@@ -174,7 +174,7 @@ export class AnalysisRepository {
       return updated;
     }
 
-    const pattern: MistakePatternCreate = {
+    const pattern: ClassificationPatternCreate = {
       patternId: getUUID(),
       userId,
       mistakeType,
@@ -183,7 +183,7 @@ export class AnalysisRepository {
     };
 
     const result = await this.db
-      .insertInto('mistakePatterns')
+      .insertInto('classificationPatterns')
       .values(pattern)
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -200,22 +200,24 @@ export class AnalysisRepository {
       .execute();
   }
 
-  async getMistakesByGame(gameId: string): Promise<Mistake[]> {
+  async getClassificationsByGame(
+    gameId: string,
+  ): Promise<MoveClassificationRecord[]> {
     return this.db
-      .selectFrom('mistakes')
+      .selectFrom('moveClassifications')
       .selectAll()
       .where('gameId', '=', gameId)
       .orderBy('moveNumber', 'asc')
       .execute();
   }
 
-  async getMistakesByUser(
+  async getClassificationsByUser(
     userId: string,
     limit = 50,
     offset = 0,
-  ): Promise<Mistake[]> {
+  ): Promise<MoveClassificationRecord[]> {
     return this.db
-      .selectFrom('mistakes')
+      .selectFrom('moveClassifications')
       .selectAll()
       .where('userId', '=', userId)
       .orderBy('createdAt', 'desc')
@@ -224,9 +226,11 @@ export class AnalysisRepository {
       .execute();
   }
 
-  async getMistakePatterns(userId: string): Promise<MistakePattern[]> {
+  async getClassificationPatterns(
+    userId: string,
+  ): Promise<ClassificationPattern[]> {
     return this.db
-      .selectFrom('mistakePatterns')
+      .selectFrom('classificationPatterns')
       .selectAll()
       .where('userId', '=', userId)
       .orderBy('occurrenceCount', 'desc')
@@ -240,23 +244,28 @@ export class AnalysisRepository {
       .execute();
   }
 
-  async deleteMistakesByGame(gameId: string): Promise<void> {
-    await this.db.deleteFrom('mistakes').where('gameId', '=', gameId).execute();
+  async deleteClassificationsByGame(gameId: string): Promise<void> {
+    await this.db
+      .deleteFrom('moveClassifications')
+      .where('gameId', '=', gameId)
+      .execute();
   }
 
-  async getMistakeById(mistakeId: string): Promise<Mistake | undefined> {
+  async getClassificationById(
+    classificationId: string,
+  ): Promise<MoveClassificationRecord | undefined> {
     return this.db
-      .selectFrom('mistakes')
+      .selectFrom('moveClassifications')
       .selectAll()
-      .where('mistakeId', '=', mistakeId)
+      .where('classificationId', '=', classificationId)
       .executeTakeFirst();
   }
 
-  async markMistakeReviewed(mistakeId: string): Promise<void> {
+  async markClassificationReviewed(classificationId: string): Promise<void> {
     await this.db
-      .updateTable('mistakes')
+      .updateTable('moveClassifications')
       .set({ hasBeenReviewed: true })
-      .where('mistakeId', '=', mistakeId)
+      .where('classificationId', '=', classificationId)
       .execute();
   }
 }

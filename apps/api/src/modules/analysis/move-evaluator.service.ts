@@ -45,6 +45,9 @@ export interface GameAnalysisResult {
   opponentAvgCentipawnLoss: number;
   userAccuracy: number;
   opponentAccuracy: number;
+  userBrilliants: number;
+  userGreats: number;
+  userBookMoves: number;
   userBlunders: number;
   userMistakes: number;
   userInaccuracies: number;
@@ -60,7 +63,8 @@ export class MoveEvaluatorService {
     private readonly chessEngine: ChessEngineService,
     private readonly configService: ConfigService,
   ) {
-    const rawDepth = this.configService.get<number>('ANALYSIS_ENGINE_DEPTH') ?? 20;
+    const rawDepth =
+      this.configService.get<number>('ANALYSIS_ENGINE_DEPTH') ?? 20;
     this.analysisDepth = Math.min(25, Math.max(10, rawDepth));
   }
 
@@ -372,6 +376,15 @@ export class MoveEvaluatorService {
           opponentCPLValues.length
         : 0;
 
+    const userBrilliants = userPositions.filter(
+      (p) => p.moveQuality === 'brilliant',
+    ).length;
+    const userGreats = userPositions.filter(
+      (p) => p.moveQuality === 'great',
+    ).length;
+    const userBookMoves = userPositions.filter(
+      (p) => p.moveQuality === 'book',
+    ).length;
     const userBlunders = userPositions.filter(
       (p) => p.moveQuality === 'blunder',
     ).length;
@@ -388,6 +401,9 @@ export class MoveEvaluatorService {
       opponentAvgCentipawnLoss: Math.round(opponentAvgCentipawnLoss * 10) / 10,
       userAccuracy: this.calculateAccuracy(userAvgCentipawnLoss),
       opponentAccuracy: this.calculateAccuracy(opponentAvgCentipawnLoss),
+      userBrilliants,
+      userGreats,
+      userBookMoves,
       userBlunders,
       userMistakes,
       userInaccuracies,

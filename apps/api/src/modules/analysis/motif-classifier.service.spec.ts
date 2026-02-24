@@ -45,7 +45,11 @@ describe('MotifClassifierService', () => {
   };
 
   it('classifies tactical sequence and returns difficulty metadata', () => {
-    const keyMove = move({ movePlayed: 'Nxf7+', isCapture: true, isCheck: true });
+    const keyMove = move({
+      movePlayed: 'Nxf7+',
+      isCapture: true,
+      isCheck: true,
+    });
     const sequence: TacticalSequence = {
       startMove: 12,
       endMove: 14,
