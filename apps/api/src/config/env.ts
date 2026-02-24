@@ -15,6 +15,10 @@ const envs = z.object({
   S3_ENDPOINT: z.string().optional(),
   S3_SIGNED_URL_EXPIRES: z.coerce.number().optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  CHESS_MODEL: z.enum(['stockfish', 'lc0', 'komodo']).default('stockfish'),
+  CHESS_ENGINE_PATH: z.string().optional(),
+  CHESS_ENGINE_DEPTH: z.coerce.number().optional(),
+  LC0_WEIGHTS_PATH: z.string().optional(),
 });
 
 export const validate = () => {

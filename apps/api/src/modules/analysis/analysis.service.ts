@@ -7,6 +7,7 @@ import { Severity } from '../../database/schema/mistakes';
 import { MoveEvaluatorService, MoveAnalysis } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalysisRepository } from './analysis.repository';
+import { ChessEngineService } from '../../chess-engines';
 
 @Injectable()
 export class AnalysisService {
@@ -17,6 +18,7 @@ export class AnalysisService {
     private readonly moveEvaluatorService: MoveEvaluatorService,
     private readonly llmExplainerService: LlmExplainerService,
     private readonly analysisRepository: AnalysisRepository,
+    private readonly chessEngineService: ChessEngineService,
   ) {}
 
   async queueGameAnalysis(
@@ -211,12 +213,15 @@ export class AnalysisService {
     gameId: string,
     result: Awaited<ReturnType<typeof this.moveEvaluatorService.analyzeGame>>,
   ): Promise<void> {
+    const engineName = this.chessEngineService.getEngineName();
+    const engineType = this.chessEngineService.getEngineType();
+
     await this.db
       .updateTable('games')
       .set({
         analyzed: true,
         analysisCompletedAt: new Date(),
-        analysisEngine: 'stockfish-15',
+        analysisEngine: `${engineName}-${engineType}`,
         totalMoves: result.totalMoves,
         userAccuracy: result.userAccuracy,
         opponentAccuracy: result.opponentAccuracy,

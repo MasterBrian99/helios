@@ -57,8 +57,8 @@ export class LlmExplainerService {
       });
 
       const text: string = result.text;
-      console.log("llm result ",text);
-      
+      console.log('llm result ', text);
+
       const mistakeType = this.extractMistakeType(text);
 
       return {

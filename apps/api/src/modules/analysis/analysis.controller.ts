@@ -30,7 +30,6 @@ export class AnalysisController {
     @Param('gameId') gameId: string,
     @Auth('sub') userId: string,
   ) {
-
     await this.analysisService.queueGameAnalysis(gameId, userId);
 
     const jobData: AnalyzeGameJobData = { gameId, userId };
@@ -46,8 +45,7 @@ export class AnalysisController {
   @ApiOperation({ summary: 'Get analysis results for a game' })
   async getAnalysis(
     @Param('gameId') gameId: string,
-      @Auth('sub') userId: string,
-
+    @Auth('sub') userId: string,
   ) {
     return this.analysisService.getAnalysisResults(gameId, userId);
   }
@@ -56,27 +54,22 @@ export class AnalysisController {
   @ApiOperation({ summary: 'Get mistakes for a specific game' })
   async getMistakes(
     @Param('gameId') gameId: string,
-       @Auth('sub') userId: string,
-
+    @Auth('sub') userId: string,
   ) {
-    return this.analysisService.getMistakesByGame(gameId,userId);
+    return this.analysisService.getMistakesByGame(gameId, userId);
   }
 
   @Get('mistakes')
   @ApiOperation({ summary: 'Get user mistakes with pagination' })
   async getUserMistakes(
-      @Auth('sub') userId: string,
+    @Auth('sub') userId: string,
 
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 50;
     const offsetNum = offset ? parseInt(offset, 10) : 0;
-    return this.analysisService.getUserMistakes(
-     userId,
-      limitNum,
-      offsetNum,
-    );
+    return this.analysisService.getUserMistakes(userId, limitNum, offsetNum);
   }
 
   @Get('patterns')

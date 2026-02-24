@@ -5,10 +5,10 @@ import { AnalysisRepository } from './analysis.repository';
 import { MoveEvaluatorService } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalyzeGameJob } from './jobs/analyze-game.job';
-import { StockfishModule } from '../../stockfish/stockfish.module';
+import { ChessEnginesModule } from '../../chess-engines';
 
 @Module({
-  imports: [StockfishModule],
+  imports: [ChessEnginesModule],
   controllers: [AnalysisController],
   providers: [
     AnalysisService,

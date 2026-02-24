@@ -157,20 +157,53 @@ Uses pg-boss for asynchronous game analysis:
 
 ## Environment Variables
 
-| Variable                     | Required | Description                         |
-| ---------------------------- | -------- | ----------------------------------- |
-| DATABASE_URL                 | Yes      | PostgreSQL connection string        |
-| GOOGLE_GENERATIVE_AI_API_KEY | No       | Gemini API key for LLM explanations |
+| Variable                     | Required | Default           | Description                                    |
+| ---------------------------- | -------- | ----------------- | ---------------------------------------------- |
+| DATABASE_URL                 | Yes      | -                 | PostgreSQL connection string                   |
+| GOOGLE_GENERATIVE_AI_API_KEY | No       | -                 | Gemini API key for LLM explanations            |
+| CHESS_MODEL                  | No       | stockfish         | Engine to use: `stockfish`, `lc0`, or `komodo` |
+| CHESS_ENGINE_PATH            | No       | `./bin/stockfish` | Path to engine binary                          |
+| CHESS_ENGINE_DEPTH           | No       | 15                | Default analysis depth                         |
+| LC0_WEIGHTS_PATH             | No       | -                 | Path to Lc0 weights file (required for Lc0)    |
 
-## Stockfish Integration
+## Multi-Engine Support
 
-The `StockfishService` was enhanced with:
+The service supports multiple chess engines loaded dynamically based on the `CHESS_MODEL` environment variable:
 
-- `analyzePosition(fen, depth)` - Returns structured evaluation
-- `parseEvaluation(lines)` - Extracts score/bestMove from raw output
-- `scoreToCentipawns(score, type)` - Converts mate scores to centipawn equivalent
+### Stockfish (default)
 
-Binary location: `./bin/stockfish`
+```bash
+CHESS_MODEL=stockfish
+CHESS_ENGINE_PATH=./bin/stockfish
+```
+
+### Lc0 (Leela Chess Zero)
+
+```bash
+CHESS_MODEL=lc0
+CHESS_ENGINE_PATH=./bin/lc0
+LC0_WEIGHTS_PATH=./weights/192x15_network.pb
+```
+
+### Komodo
+
+```bash
+CHESS_MODEL=komodo
+CHESS_ENGINE_PATH=./bin/komodo
+```
+
+### Architecture
+
+```
+src/chess-engines/
+├── chess-engine.interface.ts   # IChessEngine interface
+├── chess-engine.service.ts     # Dynamic engine loader
+├── chess-engines.module.ts     # Module definition
+├── uci-engine.base.ts          # Base class for UCI engines
+├── stockfish.engine.ts         # Stockfish implementation
+├── lc0.engine.ts               # Lc0 implementation
+└── komodo.engine.ts            # Komodo implementation
+```
 
 ## Future Enhancements
 
@@ -178,4 +211,4 @@ Binary location: `./bin/stockfish`
 2. **Pattern Recognition**: Identify recurring tactical themes
 3. **Spaced Repetition**: Schedule review based on mistake patterns
 4. **Opening Database**: Cross-reference with opening theory
-5. **Multi-engine Support**: Allow different engines (LC0, Komodo)
+5. **Engine Analysis Caching**: Cache engine evaluations for common positions

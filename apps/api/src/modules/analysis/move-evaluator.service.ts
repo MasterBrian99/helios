@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Chess } from 'chess.js';
-import { StockfishService } from '../../stockfish/stockfish.service';
+import { ChessEngineService } from '../../chess-engines';
 import { MoveQuality } from '../../database/schema/game-positions';
 
 export interface MoveAnalysis {
@@ -33,7 +33,7 @@ export class MoveEvaluatorService {
   private readonly logger = new Logger(MoveEvaluatorService.name);
   private readonly analysisDepth = 15;
 
-  constructor(private readonly stockfishService: StockfishService) {}
+  constructor(private readonly chessEngine: ChessEngineService) {}
 
   async analyzeGame(
     pgn: string,
@@ -61,7 +61,7 @@ export class MoveEvaluatorService {
       let bestMoveEval: number | null = null;
 
       try {
-        const evaluationBefore = await this.stockfishService.analyzePosition(
+        const evaluationBefore = await this.chessEngine.analyzePosition(
           fenBefore,
           this.analysisDepth,
         );
@@ -70,11 +70,11 @@ export class MoveEvaluatorService {
           evaluationBefore.score !== null &&
           evaluationBefore.scoreType !== null
         ) {
-          evalBefore = this.stockfishService.scoreToCentipawns(
+          evalBefore = this.chessEngine.scoreToCentipawns(
             evaluationBefore.score,
             evaluationBefore.scoreType,
           );
-          if (userColor === 'black') {
+          if (userColor === 'black' && evalBefore !== null) {
             evalBefore = -evalBefore;
           }
         }
@@ -99,7 +99,7 @@ export class MoveEvaluatorService {
       let evalAfter: number | null = null;
 
       try {
-        const evaluationAfter = await this.stockfishService.analyzePosition(
+        const evaluationAfter = await this.chessEngine.analyzePosition(
           fenAfter,
           this.analysisDepth,
         );
@@ -108,11 +108,11 @@ export class MoveEvaluatorService {
           evaluationAfter.score !== null &&
           evaluationAfter.scoreType !== null
         ) {
-          evalAfter = this.stockfishService.scoreToCentipawns(
+          evalAfter = this.chessEngine.scoreToCentipawns(
             evaluationAfter.score,
             evaluationAfter.scoreType,
           );
-          if (userColor === 'black') {
+          if (userColor === 'black' && evalAfter !== null) {
             evalAfter = -evalAfter;
           }
         }

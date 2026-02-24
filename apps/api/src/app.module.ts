@@ -10,9 +10,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { GamesModule } from './modules/games/games.module';
 import { StorageModule } from './storage/storage.module';
-import { StockfishModule } from './stockfish/stockfish.module';
 import { AnalysisModule } from './modules/analysis/analysis.module';
 import { PgBossModule } from '@wavezync/nestjs-pgboss';
+import { ChessEnginesModule } from './chess-engines';
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { PgBossModule } from '@wavezync/nestjs-pgboss';
     UserModule,
     GamesModule,
     StorageModule,
-    StockfishModule,
+    ChessEnginesModule,
     AnalysisModule,
   ],
   controllers: [],
