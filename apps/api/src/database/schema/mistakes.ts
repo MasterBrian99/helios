@@ -12,6 +12,34 @@ export type MistakeType =
 
 export type Severity = 'inaccuracy' | 'mistake' | 'blunder';
 
+export type TacticalPattern =
+  | 'forced_mate'
+  | 'queen_mating_attack'
+  | 'back_rank_mate'
+  | 'smothered_mate'
+  | 'fork'
+  | 'pin'
+  | 'skewer'
+  | 'discovered_attack'
+  | 'defensive_collapse'
+  | 'king_hunt'
+  | 'material_blunder'
+  | 'positional_error'
+  | 'missed_mate'
+  | 'hanging_piece'
+  | 'tactical_sequence'
+  | 'defensive_error'
+  | 'calculation_error';
+
+export interface TacticalFeaturesJson {
+  isCheck: boolean;
+  isCapture: boolean;
+  kingExposed: boolean;
+  backRankWeak: boolean;
+  materialSwing: number;
+  phase: string;
+}
+
 export interface MistakeTable {
   mistakeId: Generated<string>;
   userId: string;
@@ -27,6 +55,12 @@ export interface MistakeTable {
   explanation: string | null;
   hasBeenReviewed: Generated<boolean>;
   createdAt: CreatedAt;
+  tacticalPattern: TacticalPattern | null;
+  mateIn: number | null;
+  sequenceStart: number | null;
+  sequenceEnd: number | null;
+  difficulty: number | null;
+  tacticalFeatures: TacticalFeaturesJson | null;
 }
 
 export type Mistake = Selectable<MistakeTable>;

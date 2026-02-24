@@ -6,6 +6,7 @@ import { MoveEvaluatorService } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalyzeGameJob } from './jobs/analyze-game.job';
 import { ChessEnginesModule } from '../../chess-engines';
+import { TacticalFeatureService } from './tactical-feature.service';
 
 @Module({
   imports: [ChessEnginesModule],
@@ -16,6 +17,7 @@ import { ChessEnginesModule } from '../../chess-engines';
     MoveEvaluatorService,
     LlmExplainerService,
     AnalyzeGameJob,
+    TacticalFeatureService,
   ],
   exports: [AnalysisService],
 })

@@ -31,7 +31,6 @@ export class UserService {
     return `This action returns a #${id} user`;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   update(id: number, _updateUserDto: UpdateUserDto) {
     return `This action updates a #${id} user`;
   }

@@ -39,6 +39,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.6",
+    "@pg-boss/dashboard": "^1.1.0",
     "@wavezync/nestjs-pgboss": "^5.1.1",
     "ai": "^6.0.97",
     "bcrypt": "^6.0.0",

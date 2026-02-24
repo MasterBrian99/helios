@@ -11,6 +11,8 @@ import {
   MistakeCreate,
   MistakeType,
   Severity,
+  TacticalPattern,
+  TacticalFeaturesJson,
 } from '../../database/schema/mistakes';
 import {
   MistakePattern,
@@ -63,6 +65,12 @@ export class AnalysisRepository {
     severity: Severity,
     mistakeType: MistakeType,
     explanation?: string,
+    tacticalPattern?: TacticalPattern | null,
+    mateIn?: number | null,
+    sequenceStart?: number | null,
+    sequenceEnd?: number | null,
+    difficulty?: number | null,
+    tacticalFeatures?: TacticalFeaturesJson | null,
   ): Promise<Mistake> {
     const mistake: MistakeCreate = {
       mistakeId: getUUID(),
@@ -77,6 +85,12 @@ export class AnalysisRepository {
       bestMove,
       moveNumber,
       explanation: explanation ?? null,
+      tacticalPattern: tacticalPattern ?? null,
+      mateIn: mateIn ?? null,
+      sequenceStart: sequenceStart ?? null,
+      sequenceEnd: sequenceEnd ?? null,
+      difficulty: difficulty ?? null,
+      tacticalFeatures: tacticalFeatures ?? null,
     };
 
     const result = await this.db
@@ -96,6 +110,29 @@ export class AnalysisRepository {
     await this.db
       .updateTable('mistakes')
       .set({ explanation, mistakeType })
+      .where('mistakeId', '=', mistakeId)
+      .execute();
+  }
+
+  async updateMistakeTacticalInfo(
+    mistakeId: string,
+    tacticalPattern: TacticalPattern,
+    mateIn: number | null,
+    sequenceStart: number | null,
+    sequenceEnd: number | null,
+    difficulty: number | null,
+    tacticalFeatures: TacticalFeaturesJson | null,
+  ): Promise<void> {
+    await this.db
+      .updateTable('mistakes')
+      .set({
+        tacticalPattern,
+        mateIn,
+        sequenceStart,
+        sequenceEnd,
+        difficulty,
+        tacticalFeatures,
+      })
       .where('mistakeId', '=', mistakeId)
       .execute();
   }

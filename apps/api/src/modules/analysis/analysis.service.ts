@@ -3,11 +3,19 @@ import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { DB } from '../../database/schema/db';
 import { Game } from '../../database/schema/games';
-import { Severity } from '../../database/schema/mistakes';
+import {
+  Severity,
+  TacticalFeaturesJson,
+  TacticalPattern,
+} from '../../database/schema/mistakes';
 import { MoveEvaluatorService, MoveAnalysis } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalysisRepository } from './analysis.repository';
 import { ChessEngineService } from '../../chess-engines';
+import {
+  TacticalFeatureService,
+  TacticalFeatures,
+} from './tactical-feature.service';
 
 @Injectable()
 export class AnalysisService {
@@ -19,6 +27,7 @@ export class AnalysisService {
     private readonly llmExplainerService: LlmExplainerService,
     private readonly analysisRepository: AnalysisRepository,
     private readonly chessEngineService: ChessEngineService,
+    private readonly tacticalFeatureService: TacticalFeatureService,
   ) {}
 
   async queueGameAnalysis(
@@ -58,60 +67,71 @@ export class AnalysisService {
         game.userColor as 'white' | 'black' | null,
       );
 
-      const mistakes: Array<{
-        positionId: string;
-        analysis: MoveAnalysis;
-      }> = [];
+      const _userColor = game.userColor as 'white' | 'black' | null;
 
       for (const analysis of result.positions) {
-        const position = await this.analysisRepository.createPosition(
-          gameId,
-          analysis,
-        );
-
-        if (
-          analysis.isUserMove &&
-          (analysis.moveQuality === 'mistake' ||
-            analysis.moveQuality === 'blunder')
-        ) {
-          mistakes.push({
-            positionId: position.positionId,
-            analysis,
-          });
-        }
+        await this.analysisRepository.createPosition(gameId, analysis);
       }
 
-      for (const { positionId, analysis } of mistakes) {
-        const severity = this.getSeverity(analysis.moveQuality);
-        const initialType = this.classifyMistakeType(
-          analysis.centipawnLoss ?? 0,
+      const userMistakes = result.positions.filter(
+        (p) =>
+          p.isUserMove &&
+          (p.moveQuality === 'blunder' || p.moveQuality === 'mistake') &&
+          p.mateAfter !== 0 &&
+          p.mateBefore !== 0,
+      );
+
+      this.logger.log(`Found ${userMistakes.length} user mistakes`);
+
+      for (const mistake of userMistakes) {
+        const features = this.tacticalFeatureService.extractFeatures(
+          mistake.fen,
+          mistake.fen,
+          mistake.movePlayed ?? '',
+          mistake.moveNumber,
         );
 
-        const mistake = await this.analysisRepository.createMistake(
-          userId,
-          gameId,
-          positionId,
-          analysis.fen,
-          analysis.movePlayed ?? '',
-          analysis.bestMove,
-          analysis.moveNumber,
-          analysis.centipawnLoss ?? 0,
-          severity,
-          initialType,
-        );
+        const pattern = this.detectPattern(mistake, features);
+        const severity = this.getSeverity(mistake.moveQuality);
+
+        const tacticalFeaturesJson: TacticalFeaturesJson = {
+          isCheck: mistake.isCheck,
+          isCapture: mistake.isCapture,
+          kingExposed: features.kingExposed,
+          backRankWeak: features.isBackRankExposed,
+          materialSwing: features.materialSwing,
+          phase: mistake.phase,
+        };
+
+        const mateIn = this.getMateDistance(mistake);
+        const difficulty = this.calculateDifficulty(mistake, features);
 
         const explanation = await this.llmExplainerService.explainMistake(
-          analysis.fen,
-          analysis.movePlayed ?? '',
-          analysis.bestMove ?? '',
-          analysis.centipawnLoss ?? 0,
+          mistake.fen,
+          mistake.movePlayed ?? '',
+          mistake.bestMove ?? '',
+          mistake.centipawnLoss ?? 0,
           severity,
         );
 
-        await this.analysisRepository.updateMistakeExplanation(
-          mistake.mistakeId,
-          explanation.explanation,
+        await this.analysisRepository.createMistake(
+          userId,
+          gameId,
+          null,
+          mistake.fen,
+          mistake.movePlayed ?? '',
+          mistake.bestMove,
+          mistake.moveNumber,
+          mistake.centipawnLoss ?? 0,
+          severity,
           explanation.mistakeType,
+          explanation.explanation,
+          pattern,
+          mateIn,
+          mistake.moveNumber,
+          mistake.moveNumber,
+          difficulty,
+          tacticalFeaturesJson,
         );
 
         await this.analysisRepository.upsertMistakePattern(
@@ -166,6 +186,84 @@ export class AnalysisService {
     return this.analysisRepository.getMistakesByUser(userId, limit, offset);
   }
 
+  private detectPattern(
+    mistake: MoveAnalysis,
+    features: TacticalFeatures,
+  ): TacticalPattern {
+    if (
+      mistake.mateBefore !== null &&
+      mistake.mateBefore > 0 &&
+      mistake.mateAfter !== null
+    ) {
+      if (mistake.mateAfter <= 0) {
+        return 'missed_mate';
+      }
+      if (mistake.mateAfter > mistake.mateBefore) {
+        return 'missed_mate';
+      }
+    }
+
+    if (mistake.isCheck && features.isBackRankExposed) {
+      return 'back_rank_mate';
+    }
+
+    if (
+      features.kingExposed &&
+      mistake.centipawnLoss !== null &&
+      mistake.centipawnLoss >= 200
+    ) {
+      return 'defensive_collapse';
+    }
+
+    if (mistake.centipawnLoss !== null && mistake.centipawnLoss >= 300) {
+      return 'material_blunder';
+    }
+
+    if (mistake.centipawnLoss !== null && mistake.centipawnLoss >= 100) {
+      return 'hanging_piece';
+    }
+
+    if (mistake.centipawnLoss !== null && mistake.centipawnLoss >= 50) {
+      return 'positional_error';
+    }
+
+    return 'calculation_error';
+  }
+
+  private getMateDistance(mistake: MoveAnalysis): number | null {
+    if (mistake.mateBefore !== null && mistake.mateBefore > 0) {
+      return mistake.mateBefore;
+    }
+    if (mistake.mateAfter !== null && mistake.mateAfter < 0) {
+      return Math.abs(mistake.mateAfter);
+    }
+    return null;
+  }
+
+  private calculateDifficulty(
+    mistake: MoveAnalysis,
+    features: TacticalFeatures,
+  ): number {
+    let difficulty = 40;
+
+    if (mistake.centipawnLoss !== null) {
+      if (mistake.centipawnLoss >= 500) difficulty = 95;
+      else if (mistake.centipawnLoss >= 300) difficulty = 80;
+      else if (mistake.centipawnLoss >= 200) difficulty = 65;
+      else if (mistake.centipawnLoss >= 100) difficulty = 50;
+    }
+
+    if (mistake.mateBefore !== null && mistake.mateBefore > 0) {
+      difficulty = Math.min(100, 100 - mistake.mateBefore * 10);
+    }
+
+    if (features.kingExposed) difficulty += 5;
+    if (mistake.isCheck) difficulty += 5;
+    if (mistake.isCapture) difficulty += 5;
+
+    return Math.min(100, Math.max(10, Math.round(difficulty)));
+  }
+
   private async getGame(gameId: string, userId: string): Promise<Game> {
     const game = await this.db
       .selectFrom('games')
@@ -197,16 +295,6 @@ export class AnalysisService {
       default:
         return 'mistake';
     }
-  }
-
-  private classifyMistakeType(centipawnLoss: number) {
-    if (centipawnLoss >= 200) {
-      return 'tactical_blunder' as const;
-    }
-    if (centipawnLoss >= 100) {
-      return 'positional_error' as const;
-    }
-    return 'calculation_error' as const;
   }
 
   private async updateGameStats(

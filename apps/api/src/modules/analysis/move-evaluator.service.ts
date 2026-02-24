@@ -3,6 +3,20 @@ import { Chess } from 'chess.js';
 import { ChessEngineService } from '../../chess-engines';
 import { MoveQuality } from '../../database/schema/game-positions';
 
+export type GamePhase = 'opening' | 'middlegame' | 'endgame';
+
+export interface TacticalFeatures {
+  isCheck: boolean;
+  isCapture: boolean;
+  isSacrifice: boolean;
+  materialSwing: number;
+  kingSafetyScore: number;
+  isBackRankExposed: boolean;
+  phase: GamePhase;
+  pieceActivity: number;
+  materialBalance: number;
+}
+
 export interface MoveAnalysis {
   moveNumber: number;
   fen: string;
@@ -10,10 +24,17 @@ export interface MoveAnalysis {
   isUserMove: boolean;
   evalBefore: number | null;
   evalAfter: number | null;
+  mateBefore: number | null;
+  mateAfter: number | null;
   centipawnLoss: number | null;
   bestMove: string | null;
   bestMoveEval: number | null;
   moveQuality: MoveQuality;
+  isCheck: boolean;
+  isCapture: boolean;
+  phase: GamePhase;
+  materialBalance: number;
+  pv: string[];
 }
 
 export interface GameAnalysisResult {
@@ -57,8 +78,10 @@ export class MoveEvaluatorService {
       const isUserMove = this.isUserMove(moveNumber, userColor);
 
       let evalBefore: number | null = null;
+      let mateBefore: number | null = null;
       let bestMove: string | null = null;
       let bestMoveEval: number | null = null;
+      let pv: string[] = [];
 
       try {
         const evaluationBefore = await this.chessEngine.analyzePosition(
@@ -67,19 +90,24 @@ export class MoveEvaluatorService {
         );
 
         if (
-          evaluationBefore.score !== null &&
-          evaluationBefore.scoreType !== null
+          evaluationBefore.scoreType === 'mate' &&
+          evaluationBefore.score !== null
         ) {
+          mateBefore = evaluationBefore.score;
           evalBefore = this.chessEngine.scoreToCentipawns(
             evaluationBefore.score,
             evaluationBefore.scoreType,
           );
-          if (userColor === 'black' && evalBefore !== null) {
-            evalBefore = -evalBefore;
-          }
+        } else if (evaluationBefore.score !== null) {
+          evalBefore = evaluationBefore.score;
+        }
+
+        if (userColor === 'black' && evalBefore !== null) {
+          evalBefore = -evalBefore;
         }
         bestMove = evaluationBefore.bestMove;
         bestMoveEval = evalBefore;
+        pv = evaluationBefore.pv;
       } catch {
         this.logger.error(
           `Error evaluating position before move ${moveNumber}`,
@@ -87,9 +115,10 @@ export class MoveEvaluatorService {
       }
 
       let movePlayed: string;
+      let moveObj: ReturnType<typeof chess.move>;
       try {
-        const move = chess.move(moveSan);
-        movePlayed = move.san;
+        moveObj = chess.move(moveSan);
+        movePlayed = moveObj.san;
       } catch {
         this.logger.error(`Invalid move ${moveSan} at position ${moveNumber}`);
         continue;
@@ -97,6 +126,7 @@ export class MoveEvaluatorService {
 
       const fenAfter = chess.fen();
       let evalAfter: number | null = null;
+      let mateAfter: number | null = null;
 
       try {
         const evaluationAfter = await this.chessEngine.analyzePosition(
@@ -105,24 +135,40 @@ export class MoveEvaluatorService {
         );
 
         if (
-          evaluationAfter.score !== null &&
-          evaluationAfter.scoreType !== null
+          evaluationAfter.scoreType === 'mate' &&
+          evaluationAfter.score !== null
         ) {
+          mateAfter = evaluationAfter.score;
           evalAfter = this.chessEngine.scoreToCentipawns(
             evaluationAfter.score,
             evaluationAfter.scoreType,
           );
-          if (userColor === 'black' && evalAfter !== null) {
-            evalAfter = -evalAfter;
-          }
+        } else if (evaluationAfter.score !== null) {
+          evalAfter = evaluationAfter.score;
+        }
+
+        if (userColor === 'black' && evalAfter !== null) {
+          evalAfter = -evalAfter;
         }
       } catch {
         this.logger.error(`Error evaluating position after move ${moveNumber}`);
       }
 
-      const centipawnLoss = this.calculateCentipawnLoss(evalBefore, evalAfter);
-
-      const moveQuality = this.classifyMove(centipawnLoss);
+      const centipawnLoss = this.calculateCentipawnLoss(
+        evalBefore,
+        evalAfter,
+        mateBefore,
+        mateAfter,
+      );
+      const moveQuality = this.classifyMove(
+        centipawnLoss,
+        mateBefore,
+        mateAfter,
+      );
+      const isCheck = chess.isCheck();
+      const isCapture = moveObj.captured !== undefined;
+      const phase = this.detectPhase(moveNumber, fenBefore);
+      const materialBalance = this.calculateMaterialBalance(fenBefore);
 
       positions.push({
         moveNumber,
@@ -131,14 +177,126 @@ export class MoveEvaluatorService {
         isUserMove,
         evalBefore,
         evalAfter,
+        mateBefore,
+        mateAfter,
         centipawnLoss: isUserMove ? centipawnLoss : null,
         bestMove,
         bestMoveEval,
         moveQuality,
+        isCheck,
+        isCapture,
+        phase,
+        materialBalance,
+        pv,
       });
     }
 
     return this.computeStatistics(positions);
+  }
+
+  detectPhase(moveNumber: number, fen: string): GamePhase {
+    const chess = new Chess(fen);
+    const board = chess.board();
+    let pieceCount = 0;
+
+    for (const row of board) {
+      for (const square of row) {
+        if (square) {
+          pieceCount++;
+        }
+      }
+    }
+
+    if (moveNumber <= 10 && pieceCount >= 28) {
+      return 'opening';
+    }
+
+    if (pieceCount <= 12 || moveNumber >= 40) {
+      return 'endgame';
+    }
+
+    return 'middlegame';
+  }
+
+  calculateMaterialBalance(fen: string): number {
+    const pieceValues: Record<string, number> = {
+      p: 1,
+      n: 3,
+      b: 3,
+      r: 5,
+      q: 9,
+      k: 0,
+      P: -1,
+      N: -3,
+      B: -3,
+      R: -5,
+      Q: -9,
+      K: 0,
+    };
+
+    const chess = new Chess(fen);
+    const board = chess.board();
+    let balance = 0;
+
+    for (const row of board) {
+      for (const square of row) {
+        if (square) {
+          balance += pieceValues[square.type] * (square.color === 'w' ? 1 : -1);
+        }
+      }
+    }
+
+    return balance * 100;
+  }
+
+  private calculateCentipawnLoss(
+    evalBefore: number | null,
+    evalAfter: number | null,
+    mateBefore: number | null,
+    mateAfter: number | null,
+  ): number {
+    if (mateBefore !== null && mateAfter !== null) {
+      if (mateBefore > 0 && mateAfter <= 0) {
+        return 1000;
+      }
+      if (mateBefore > 0 && mateAfter > 0 && mateAfter > mateBefore) {
+        return Math.min(500, (mateAfter - mateBefore) * 50);
+      }
+      if (mateBefore < 0 && mateAfter < 0 && mateAfter < mateBefore) {
+        return 0;
+      }
+    }
+
+    if (mateAfter !== null && mateAfter < 0) {
+      return 1000;
+    }
+
+    if (evalBefore === null || evalAfter === null) {
+      return 0;
+    }
+
+    const loss = evalBefore - evalAfter;
+    return Math.max(0, loss);
+  }
+
+  classifyMove(
+    centipawnLoss: number | null,
+    mateBefore: number | null = null,
+    mateAfter: number | null = null,
+  ): MoveQuality {
+    if (mateBefore !== null && mateAfter !== null) {
+      if (mateBefore > 0 && mateAfter <= 0) return 'blunder';
+      if (mateBefore > 0 && mateAfter > 0 && mateAfter > mateBefore) {
+        return mateAfter - mateBefore >= 2 ? 'blunder' : 'mistake';
+      }
+    }
+
+    if (centipawnLoss === null) return 'good';
+
+    if (centipawnLoss >= 100) return 'blunder';
+    if (centipawnLoss >= 50) return 'mistake';
+    if (centipawnLoss >= 25) return 'inaccuracy';
+    return 'good';
   }
 
   private extractMoves(pgn: string): string[] {
@@ -162,27 +320,6 @@ export class MoveEvaluatorService {
       (userColor === 'white' && isWhiteMove) ||
       (userColor === 'black' && !isWhiteMove)
     );
-  }
-
-  private calculateCentipawnLoss(
-    evalBefore: number | null,
-    evalAfter: number | null,
-  ): number {
-    if (evalBefore === null || evalAfter === null) {
-      return 0;
-    }
-
-    const loss = evalBefore - evalAfter;
-    return Math.max(0, loss);
-  }
-
-  classifyMove(centipawnLoss: number | null): MoveQuality {
-    if (centipawnLoss === null) return 'good';
-
-    if (centipawnLoss >= 100) return 'blunder';
-    if (centipawnLoss >= 50) return 'mistake';
-    if (centipawnLoss >= 25) return 'inaccuracy';
-    return 'good';
   }
 
   calculateAccuracy(avgCentipawnLoss: number): number {
