@@ -112,41 +112,6 @@ export class AnalysisRepository {
     return result;
   }
 
-  async updateClassificationExplanation(
-    classificationId: string,
-    explanation: string,
-    mistakeType: MistakeType,
-  ): Promise<void> {
-    await this.db
-      .updateTable('moveClassifications')
-      .set({ explanation, mistakeType })
-      .where('classificationId', '=', classificationId)
-      .execute();
-  }
-
-  async updateClassificationTacticalInfo(
-    classificationId: string,
-    tacticalPattern: TacticalPattern,
-    mateIn: number | null,
-    sequenceStart: number | null,
-    sequenceEnd: number | null,
-    difficulty: number | null,
-    tacticalFeatures: TacticalFeaturesJson | null,
-  ): Promise<void> {
-    await this.db
-      .updateTable('moveClassifications')
-      .set({
-        tacticalPattern,
-        mateIn,
-        sequenceStart,
-        sequenceEnd,
-        difficulty,
-        tacticalFeatures,
-      })
-      .where('classificationId', '=', classificationId)
-      .execute();
-  }
-
   async upsertClassificationPattern(
     userId: string,
     mistakeType: MistakeType,
@@ -248,24 +213,6 @@ export class AnalysisRepository {
     await this.db
       .deleteFrom('moveClassifications')
       .where('gameId', '=', gameId)
-      .execute();
-  }
-
-  async getClassificationById(
-    classificationId: string,
-  ): Promise<MoveClassificationRecord | undefined> {
-    return this.db
-      .selectFrom('moveClassifications')
-      .selectAll()
-      .where('classificationId', '=', classificationId)
-      .executeTakeFirst();
-  }
-
-  async markClassificationReviewed(classificationId: string): Promise<void> {
-    await this.db
-      .updateTable('moveClassifications')
-      .set({ hasBeenReviewed: true })
-      .where('classificationId', '=', classificationId)
       .execute();
   }
 }

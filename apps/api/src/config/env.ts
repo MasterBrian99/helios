@@ -24,5 +24,6 @@ const envs = z.object({
 
 export const validate = () => {
   const validated = envs.parse(process.env);
+  
   return validated;
 };

@@ -6,18 +6,6 @@ import { MoveQuality } from '../../database/schema/game-positions';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 
-export interface TacticalFeatures {
-  isCheck: boolean;
-  isCapture: boolean;
-  isSacrifice: boolean;
-  materialSwing: number;
-  kingSafetyScore: number;
-  isBackRankExposed: boolean;
-  phase: GamePhase;
-  pieceActivity: number;
-  materialBalance: number;
-}
-
 export interface MoveAnalysis {
   moveNumber: number;
   fen: string;

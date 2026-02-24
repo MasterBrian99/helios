@@ -8,7 +8,6 @@ import { AnalyzeGameJob } from './jobs/analyze-game.job';
 import { ChessEnginesModule } from '../../chess-engines';
 import { TacticalFeatureService } from './tactical-feature.service';
 import { MoveClassificationBuilderService } from './move-classification-builder.service';
-import { MoveClassificationService } from './move-classification.service';
 import { SequenceMergerService } from './sequence-merger.service';
 import { MotifClassifierService } from './motif-classifier.service';
 
@@ -23,7 +22,6 @@ import { MotifClassifierService } from './motif-classifier.service';
     AnalyzeGameJob,
     TacticalFeatureService,
     MoveClassificationBuilderService,
-    MoveClassificationService,
     SequenceMergerService,
     MotifClassifierService,
   ],

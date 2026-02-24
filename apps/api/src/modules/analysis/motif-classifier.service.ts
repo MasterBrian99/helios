@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Chess } from 'chess.js';
 import { TacticalPattern } from '../../database/schema/move-classifications';
 import { TacticalFeatures } from './tactical-feature.service';
 import { TacticalSequence } from './sequence-merger.service';
@@ -309,42 +308,5 @@ export class MotifClassifierService {
     }
 
     return Math.min(100, Math.max(10, Math.round(difficulty)));
-  }
-
-  detectPatternFromFen(fen: string): {
-    isCheckmate: boolean;
-    isStalemate: boolean;
-    material: number;
-  } {
-    try {
-      const chess = new Chess(fen);
-      const isCheckmate = chess.isCheckmate();
-      const isStalemate = chess.isStalemate();
-      const isDraw = chess.isDraw();
-
-      let material = 0;
-      const board = chess.board();
-      const pieceValues: Record<string, number> = {
-        p: 1,
-        n: 3,
-        b: 3,
-        r: 5,
-        q: 9,
-        k: 0,
-      };
-
-      for (const row of board) {
-        for (const square of row) {
-          if (square) {
-            const value = pieceValues[square.type] || 0;
-            material += square.color === 'w' ? value : -value;
-          }
-        }
-      }
-
-      return { isCheckmate, isStalemate: isStalemate || isDraw, material };
-    } catch {
-      return { isCheckmate: false, isStalemate: false, material: 0 };
-    }
   }
 }
