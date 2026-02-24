@@ -2,15 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { Chess } from 'chess.js';
-import {
-  MistakeType,
-  Severity,
-  TacticalPattern,
-} from '../../database/schema/mistakes';
-import { TacticalFeatures } from './tactical-feature.service';
-import { TacticalSequence } from './sequence-merger.service';
-import { PatternAnalysis } from './motif-classifier.service';
+import { MistakeType } from '../../database/schema/mistakes';
+import { StructuredMistake } from './structured-mistake.interface';
 
 export interface MistakeExplanation {
   explanation: string;
@@ -21,398 +14,218 @@ export interface MistakeExplanation {
 export class LlmExplainerService {
   private readonly logger = new Logger(LlmExplainerService.name);
   private readonly model: ReturnType<typeof google> | null;
+  private readonly temperature: number;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>(
-      'GOOGLE_GENERATIVE_AI_API_KEY',
-    );
-    if (apiKey) {
-      this.model = google('gemini-2.5-flash');
-    } else {
+    const apiKey = this.configService.get<string>('GOOGLE_GENERATIVE_AI_API_KEY');
+    const configuredTemp = Number(this.configService.get<string>('LLM_EXPLAINER_TEMPERATURE') ?? '0.1');
+    this.temperature = Number.isFinite(configuredTemp) ? configuredTemp : 0.1;
+
+    if (!apiKey) {
       this.logger.warn(
-        'GOOGLE_GENERATIVE_AI_API_KEY not set. LLM explanations will be disabled.',
+        'GOOGLE_GENERATIVE_AI_API_KEY not set. LLM explanations are disabled; deterministic fallback will be used.',
       );
       this.model = null;
+      return;
     }
+
+    this.model = google('gemini-2.5-flash');
   }
 
-  async explainMistake(
-    fen: string,
-    movePlayed: string,
-    bestMove: string,
-    centipawnLoss: number,
-    severity: Severity,
-  ): Promise<MistakeExplanation> {
+  async explainStructured(data: StructuredMistake): Promise<MistakeExplanation> {
+    const mistakeType = this.classifyMistake(data);
+
     if (!this.model) {
       return {
-        explanation: 'LLM explanations are not configured.',
-        mistakeType: this.classifyMistakeType(centipawnLoss),
-      };
-    }
-
-    const boardDescription = this.fenToBoardDescription(fen);
-    const prompt = this.buildPrompt(
-      fen,
-      boardDescription,
-      movePlayed,
-      bestMove,
-      centipawnLoss,
-      severity,
-    );
-
-    try {
-      const result = await generateText({
-        model: this.model,
-        prompt,
-      });
-
-      const text: string = result.text;
-      const mistakeType = this.extractMistakeType(text);
-
-      return {
-        explanation: this.extractExplanation(text),
         mistakeType,
-      };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error generating explanation: ${errorMessage}`);
-      return {
-        explanation: 'Unable to generate explanation for this mistake.',
-        mistakeType: this.classifyMistakeType(centipawnLoss),
-      };
-    }
-  }
-
-  async explainTacticalSequence(
-    sequence: TacticalSequence,
-    patternAnalysis: PatternAnalysis,
-    features: TacticalFeatures,
-    userColor: 'white' | 'black',
-  ): Promise<MistakeExplanation> {
-    if (!this.model) {
-      return {
-        explanation: 'LLM explanations are not configured.',
-        mistakeType: this.mapPatternToMistakeType(patternAnalysis.pattern),
+        explanation: this.generateDeterministicFallback(data),
       };
     }
 
-    const keyMove = sequence.keyMove;
-    const boardDescription = this.fenToBoardDescription(keyMove.fen);
-    const prompt = this.buildTacticalPrompt(
-      keyMove.fen,
-      boardDescription,
-      keyMove.movePlayed ?? '',
-      keyMove.bestMove,
-      keyMove.centipawnLoss ?? 0,
-      patternAnalysis,
-      features,
-      sequence,
-      userColor,
-    );
+    const basePrompt = this.buildPrompt(data, mistakeType, false);
+    const first = await this.generateFormatted(basePrompt, mistakeType);
 
-    try {
-      const result = await generateText({
-        model: this.model,
-        prompt,
-      });
-
-      const text: string = result.text;
-
+    if (first && this.validateExplanation(first.explanation, data)) {
       return {
-        explanation: this.extractExplanation(text),
-        mistakeType: this.extractMistakeType(text),
-      };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(
-        `Error generating tactical explanation: ${errorMessage}`,
-      );
-      return {
-        explanation: this.generateFallbackExplanation(
-          patternAnalysis,
-          features,
-        ),
-        mistakeType: this.mapPatternToMistakeType(patternAnalysis.pattern),
+        mistakeType,
+        explanation: first.explanation,
       };
     }
-  }
 
-  private fenToBoardDescription(fen: string): string {
-    try {
-      const chess = new Chess(fen);
-      const turn = chess.turn() === 'w' ? 'White' : 'Black';
-      const castling = chess.fen().split(' ')[2];
-      const enPassant = chess.fen().split(' ')[3];
+    const retryPrompt = this.buildPrompt(data, mistakeType, true);
+    const retry = await this.generateFormatted(retryPrompt, mistakeType);
 
-      const board = chess.board();
-      let boardText = '   a b c d e f g h\n  +-----------------+\n';
-
-      for (let rank = 0; rank < 8; rank++) {
-        const rankNum = 8 - rank;
-        boardText += `${rankNum} | `;
-        for (let file = 0; file < 8; file++) {
-          const square = board[rank][file];
-          if (square) {
-            const piece =
-              square.color === 'w'
-                ? square.type.toUpperCase()
-                : square.type.toLowerCase();
-            boardText += `${piece} `;
-          } else {
-            boardText += '. ';
-          }
-        }
-        boardText += `| ${rankNum}\n`;
-      }
-
-      boardText += '  +-----------------+\n   a b c d e f g h\n';
-
-      const pieces: string[] = [];
-      for (let rank = 0; rank < 8; rank++) {
-        for (let file = 0; file < 8; file++) {
-          const square = board[rank][file];
-          if (square) {
-            const files = 'abcdefgh';
-            const pos = `${files[file]}${8 - rank}`;
-            const pieceName = this.getPieceName(square.type);
-            const color = square.color === 'w' ? 'White' : 'Black';
-            pieces.push(`${color} ${pieceName} on ${pos}`);
-          }
-        }
-      }
-
-      const whitePieces = pieces.filter((p) => p.startsWith('White'));
-      const blackPieces = pieces.filter((p) => p.startsWith('Black'));
-
-      let description = `${turn} to move\n\n`;
-      description += `Board position:\n${boardText}\n`;
-      description += `White pieces: ${whitePieces.join(', ') || 'none'}\n`;
-      description += `Black pieces: ${blackPieces.join(', ') || 'none'}\n`;
-
-      if (castling !== '-') {
-        description += `Castling rights: ${castling}\n`;
-      }
-      if (enPassant !== '-') {
-        description += `En passant square: ${enPassant}\n`;
-      }
-
-      if (chess.isCheck()) {
-        description += `${turn} is in CHECK!\n`;
-      }
-
-      return description;
-    } catch {
-      return `FEN: ${fen}`;
+    if (retry && this.validateExplanation(retry.explanation, data)) {
+      return {
+        mistakeType,
+        explanation: retry.explanation,
+      };
     }
-  }
 
-  private getPieceName(type: string): string {
-    const names: Record<string, string> = {
-      p: 'Pawn',
-      n: 'Knight',
-      b: 'Bishop',
-      r: 'Rook',
-      q: 'Queen',
-      k: 'King',
+    return {
+      mistakeType,
+      explanation: this.generateDeterministicFallback(data),
     };
-    return names[type] || type;
   }
 
-  private buildPrompt(
-    fen: string,
-    boardDescription: string,
-    movePlayed: string,
-    bestMove: string,
-    centipawnLoss: number,
-    severity: Severity,
-  ): string {
-    return `You are a chess coach. A player made a mistake. Analyze this position.
-
-${boardDescription}
-
-Move played: ${movePlayed}
-Best move according to engine: ${bestMove || 'unknown'}
-Evaluation loss: ${centipawnLoss} centipawns (${severity})
-
-IMPORTANT: Look at the board above carefully. The position shows exactly where each piece is. Do not make up pieces or squares that aren't shown.
-
-Analyze:
-1. What tactical or strategic idea did ${movePlayed} miss or allow?
-2. What makes ${bestMove || 'the best move'} better in this exact position?
-
-Be brief and factual. Only comment on what you can see on the board.
-
-Classify the mistake:
-- tactical_blunder: Missed tactic, blundered material, or missed mate
-- positional_error: Weakened position, poor piece placement
-- calculation_error: Miscalculated a line
-- defensive_error: Failed to defend properly
-- opening_error: Known opening mistake
-- endgame_error: Endgame mistake
-
-Format:
-TYPE: [category]
-EXPLANATION: [2-3 sentences based ONLY on the shown position]`;
-  }
-
-  private buildTacticalPrompt(
-    _fen: string,
-    boardDescription: string,
-    movePlayed: string,
-    bestMove: string | null,
-    centipawnLoss: number,
-    patternAnalysis: PatternAnalysis,
-    features: TacticalFeatures,
-    sequence: TacticalSequence,
-    _userColor: 'white' | 'black',
-  ): string {
-    const sequenceContext = this.buildSequenceContext(sequence, _userColor);
-
-    return `You are a chess coach. A player made a tactical mistake. Analyze this position.
-
-${boardDescription}
-
-Move played: ${movePlayed}
-Best move: ${bestMove || 'unknown'}
-Evaluation loss: ${centipawnLoss} centipawns
-
-Pattern detected: ${patternAnalysis.pattern.replace(/_/g, ' ')}
-Phase: ${features.phase}
-${sequence.mateIn ? `Mate was possible in ${sequence.mateIn} moves` : ''}
-${features.kingExposed ? 'King is exposed' : ''}
-${features.isBackRankExposed ? 'Back rank is vulnerable' : ''}
-
-${sequenceContext}
-
-IMPORTANT: Look at the board above. Only comment on pieces and squares that are shown.
-
-Analyze:
-1. What was the tactical opportunity?
-2. What did ${movePlayed} miss?
-3. Why was ${bestMove || 'the best move'} better?
-
-Format:
-TYPE: [category]
-EXPLANATION: [2-3 factual sentences]`;
-  }
-
-  private buildSequenceContext(
-    sequence: TacticalSequence,
-    userColor: 'white' | 'black',
-  ): string {
-    if (sequence.positions.length <= 1) {
-      return '';
-    }
-
-    const userMoves = sequence.positions
-      .filter((p) => p.isUserMove)
-      .map((p) => p.movePlayed)
-      .slice(0, 5);
-
-    const opponentMoves = sequence.positions
-      .filter((p) => !p.isUserMove)
-      .map((p) => p.movePlayed)
-      .slice(0, 5);
-
-    if (userMoves.length === 0 && opponentMoves.length === 0) {
-      return '';
-    }
-
-    return `Sequence (moves ${sequence.startMove}-${sequence.endMove}):
-${userColor === 'white' ? 'White' : 'Black'} played: ${userMoves.join(', ') || 'none'}
-Opponent played: ${opponentMoves.join(', ') || 'none'}`;
-  }
-
-  private extractExplanation(text: string): string {
-    const match = text.match(/EXPLANATION:\s*([\s\S]*?)(?=\n\n|TYPE:|$)/i);
-    if (match) {
-      return match[1].trim();
-    }
-
-    const typeMatch = text.match(/TYPE:/i);
-    if (typeMatch) {
-      const beforeType = text.substring(0, typeMatch.index).trim();
-      if (beforeType) {
-        return beforeType;
-      }
-    }
-
-    return text.trim();
-  }
-
-  private extractMistakeType(text: string): MistakeType {
-    const typeMatch = text.match(/TYPE:\s*(\w+)/i);
-    if (typeMatch) {
-      const type = typeMatch[1].toLowerCase() as MistakeType;
-      const validTypes: MistakeType[] = [
-        'tactical_blunder',
-        'positional_error',
-        'calculation_error',
-        'defensive_error',
-        'time_trouble_error',
-        'opening_error',
-        'endgame_error',
-      ];
-      if (validTypes.includes(type)) {
-        return type;
-      }
-    }
-    return 'tactical_blunder';
-  }
-
-  private classifyMistakeType(centipawnLoss: number): MistakeType {
-    if (centipawnLoss >= 200) {
-      return 'tactical_blunder';
-    }
+  private classifyMistake(data: StructuredMistake): MistakeType {
+    if (data.tactical.missedMate) return 'tactical_blunder';
+    if (data.material.immediateLoss) return 'tactical_blunder';
+    if (data.tactical.hangingPiece) return 'tactical_blunder';
+    if (data.tactical.kingExposed) return 'defensive_error';
+    if (data.phase === 'opening' && data.centipawnLoss < 120) return 'opening_error';
+    if (data.phase === 'endgame') return 'endgame_error';
     return 'positional_error';
   }
 
-  private generateFallbackExplanation(
-    patternAnalysis: PatternAnalysis,
-    features: TacticalFeatures,
-  ): string {
-    let explanation = `In the ${features.phase}, `;
+  private buildPrompt(data: StructuredMistake, mistakeType: MistakeType, retry: boolean): string {
+    const allowedTactics = this.allowedTactics(data);
+    const forbiddenTactics = this.forbiddenTactics(data);
+    const materialLine = data.material.immediateLoss
+      ? `${data.material.materialLost} points are lost immediately`
+      : 'no immediate material loss';
 
-    if (patternAnalysis.isCheckmateRelated) {
-      explanation += `there was a checkmate opportunity. `;
-    }
+    return `You are a strict formatter, not a chess analyst.
+Use only the verified fields below. Do not add any chess ideas.
+Do not infer tactics that are not flagged true.
+Do not name openings.
+Output exactly two lines in this exact schema:
+TYPE: ${mistakeType}
+EXPLANATION: <2-3 sentences>
+${retry ? 'Previous output was rejected by validator. Follow constraints exactly.' : ''}
+Write in friendly, clear language for a club-level chess player.
+Always mention the played move and the best move using these exact SAN strings.
 
-    if (features.kingExposed) {
-      explanation += `The king was exposed and vulnerable. `;
-    }
-
-    explanation += `This was a ${patternAnalysis.pattern.replace(/_/g, ' ')}.`;
-
-    return explanation;
+VERIFIED_FACTS:
+phase=${data.phase}
+centipawnLoss=${data.centipawnLoss}
+severity=${data.severity}
+material=${materialLine}
+missedMate=${data.tactical.missedMate}${data.tactical.mateIn ? ` (mateIn=${data.tactical.mateIn})` : ''}
+hangingPiece=${data.tactical.hangingPiece}
+kingExposed=${data.tactical.kingExposed}
+backRankWeak=${data.tactical.backRankWeak}
+allowedTactics=${allowedTactics.length > 0 ? allowedTactics.join(', ') : 'none'}
+forbiddenTactics=${forbiddenTactics.join(', ')}
+movePlayed=${data.comparison.movePlayed}
+bestMove=${data.comparison.bestMove}
+bestMoveBenefits=${data.comparison.bestMoveBenefits.join('; ') || 'none'}
+movePlayedConsequences=${data.comparison.movePlayedConsequences.join('; ') || 'none'}`;
   }
 
-  private mapPatternToMistakeType(pattern: TacticalPattern): MistakeType {
-    switch (pattern) {
-      case 'forced_mate':
-      case 'queen_mating_attack':
-      case 'back_rank_mate':
-      case 'smothered_mate':
-      case 'fork':
-      case 'pin':
-      case 'skewer':
-      case 'discovered_attack':
-      case 'missed_mate':
-      case 'hanging_piece':
-      case 'tactical_sequence':
-      case 'material_blunder':
-        return 'tactical_blunder';
-      case 'defensive_collapse':
-      case 'king_hunt':
-      case 'defensive_error':
-        return 'defensive_error';
-      case 'positional_error':
-        return 'positional_error';
-      case 'calculation_error':
-        return 'calculation_error';
-      default:
-        return 'calculation_error';
+  private async generateFormatted(
+    prompt: string,
+    expectedType: MistakeType,
+  ): Promise<{ explanation: string } | null> {
+    try {
+      const result = await generateText({
+        model: this.model!,
+        prompt,
+        temperature: this.temperature,
+        maxOutputTokens: 250,
+      });
+
+      return this.parseOutput(result.text, expectedType);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`LLM formatting failed: ${message}`);
+      return null;
     }
+  }
+
+  private parseOutput(text: string, expectedType: MistakeType): { explanation: string } | null {
+    const typeMatch = text.match(/^TYPE:\s*(.+)$/im);
+    const explanationMatch = text.match(/^EXPLANATION:\s*([\s\S]+)$/im);
+
+    if (!typeMatch || !explanationMatch) return null;
+
+    const parsedType = typeMatch[1].trim();
+    if (parsedType !== expectedType) {
+      return null;
+    }
+
+    const explanation = explanationMatch[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .join(' ')
+      .trim();
+    if (!explanation) {
+      return null;
+    }
+
+    const sentenceCount = (explanation.match(/[.!?](\s|$)/g) || []).length;
+    if (sentenceCount < 2 || sentenceCount > 3) {
+      return null;
+    }
+
+    return { explanation };
+  }
+
+  private validateExplanation(explanation: string, data: StructuredMistake): boolean {
+    const text = explanation.toLowerCase();
+
+    if (!data.tactical.fork && text.includes('fork')) return false;
+    if (!data.tactical.pin && text.includes('pin')) return false;
+    if (!data.tactical.skewer && text.includes('skewer')) return false;
+    if (!data.tactical.missedMate && text.includes('mate')) return false;
+
+    if (data.material.materialLost === 0) {
+      if (text.includes('loses material')) return false;
+      if (text.includes('lost material')) return false;
+      if (text.includes('drops material')) return false;
+      if (text.includes('blundered a piece')) return false;
+    }
+
+    return true;
+  }
+
+  private allowedTactics(data: StructuredMistake): string[] {
+    const tactics: string[] = [];
+    if (data.tactical.fork) tactics.push('fork');
+    if (data.tactical.pin) tactics.push('pin');
+    if (data.tactical.skewer) tactics.push('skewer');
+    if (data.tactical.discoveredAttack) tactics.push('discovered attack');
+    if (data.tactical.missedMate) tactics.push('mate');
+    if (data.tactical.hangingPiece) tactics.push('hanging piece');
+    if (data.tactical.backRankWeak) tactics.push('back rank weakness');
+    return tactics;
+  }
+
+  private forbiddenTactics(data: StructuredMistake): string[] {
+    const blocked: string[] = [];
+    if (!data.tactical.fork) blocked.push('fork');
+    if (!data.tactical.pin) blocked.push('pin');
+    if (!data.tactical.skewer) blocked.push('skewer');
+    if (!data.tactical.discoveredAttack) blocked.push('discovered attack');
+    if (!data.tactical.missedMate) blocked.push('mate');
+    return blocked;
+  }
+
+  private generateDeterministicFallback(data: StructuredMistake): string {
+    const move = data.comparison.movePlayed || 'the played move';
+    const bestMove = data.comparison.bestMove || 'the best move';
+
+    if (data.material.immediateLoss) {
+      const pointWord = data.material.materialLost === 1 ? 'point' : 'points';
+      return `After ${move}, you immediately lose ${data.material.materialLost} ${pointWord} of material. A better choice was ${bestMove}, which avoids that loss and keeps your position steadier.`;
+    }
+
+    if (data.tactical.missedMate) {
+      if (data.tactical.mateIn) {
+        return `With ${move}, a forced mate in ${data.tactical.mateIn} was missed. Playing ${bestMove} keeps that mating line and converts the advantage cleanly.`;
+      }
+      return `The move ${move} misses a forcing mating sequence. ${bestMove} keeps the mating threat and preserves the winning plan.`;
+    }
+
+    if (data.tactical.kingExposed) {
+      return `${move} leaves your king more exposed and makes defense harder. ${bestMove} keeps king safety under better control and gives you a more comfortable position.`;
+    }
+
+    if (data.phase === 'opening' && data.positional.undevelopedPieces.length > 0) {
+      return `${move} does not lose material, but it slows down your development in the opening. ${bestMove} improves piece activity and keeps your setup on track.`;
+    }
+
+    return `${move} is playable, but it makes your position less precise. ${bestMove} keeps better coordination and leads to a cleaner position.`;
   }
 }

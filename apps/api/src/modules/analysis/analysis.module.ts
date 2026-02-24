@@ -7,6 +7,7 @@ import { LlmExplainerService } from './llm-explainer.service';
 import { AnalyzeGameJob } from './jobs/analyze-game.job';
 import { ChessEnginesModule } from '../../chess-engines';
 import { TacticalFeatureService } from './tactical-feature.service';
+import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
 
 @Module({
   imports: [ChessEnginesModule],
@@ -18,6 +19,7 @@ import { TacticalFeatureService } from './tactical-feature.service';
     LlmExplainerService,
     AnalyzeGameJob,
     TacticalFeatureService,
+    DeterministicMistakeBuilderService,
   ],
   exports: [AnalysisService],
 })

@@ -16,6 +16,8 @@ import {
   TacticalFeatureService,
   TacticalFeatures,
 } from './tactical-feature.service';
+import { DeterministicMistakeBuilderService } from './deterministic-mistake-builder.service';
+import type { PatternAnalysis } from './motif-classifier.service';
 
 @Injectable()
 export class AnalysisService {
@@ -28,6 +30,7 @@ export class AnalysisService {
     private readonly analysisRepository: AnalysisRepository,
     private readonly chessEngineService: ChessEngineService,
     private readonly tacticalFeatureService: TacticalFeatureService,
+    private readonly mistakeBuilder: DeterministicMistakeBuilderService,
   ) {}
 
   async queueGameAnalysis(
@@ -67,8 +70,6 @@ export class AnalysisService {
         game.userColor as 'white' | 'black' | null,
       );
 
-      const _userColor = game.userColor as 'white' | 'black' | null;
-
       for (const analysis of result.positions) {
         await this.analysisRepository.createPosition(gameId, analysis);
       }
@@ -84,60 +85,7 @@ export class AnalysisService {
       this.logger.log(`Found ${userMistakes.length} user mistakes`);
 
       for (const mistake of userMistakes) {
-        const features = this.tacticalFeatureService.extractFeatures(
-          mistake.fen,
-          mistake.fen,
-          mistake.movePlayed ?? '',
-          mistake.moveNumber,
-        );
-
-        const pattern = this.detectPattern(mistake, features);
-        const severity = this.getSeverity(mistake.moveQuality);
-
-        const tacticalFeaturesJson: TacticalFeaturesJson = {
-          isCheck: mistake.isCheck,
-          isCapture: mistake.isCapture,
-          kingExposed: features.kingExposed,
-          backRankWeak: features.isBackRankExposed,
-          materialSwing: features.materialSwing,
-          phase: mistake.phase,
-        };
-
-        const mateIn = this.getMateDistance(mistake);
-        const difficulty = this.calculateDifficulty(mistake, features);
-
-        const explanation = await this.llmExplainerService.explainMistake(
-          mistake.fen,
-          mistake.movePlayed ?? '',
-          mistake.bestMove ?? '',
-          mistake.centipawnLoss ?? 0,
-          severity,
-        );
-
-        await this.analysisRepository.createMistake(
-          userId,
-          gameId,
-          null,
-          mistake.fen,
-          mistake.movePlayed ?? '',
-          mistake.bestMove,
-          mistake.moveNumber,
-          mistake.centipawnLoss ?? 0,
-          severity,
-          explanation.mistakeType,
-          explanation.explanation,
-          pattern,
-          mateIn,
-          mistake.moveNumber,
-          mistake.moveNumber,
-          difficulty,
-          tacticalFeaturesJson,
-        );
-
-        await this.analysisRepository.upsertMistakePattern(
-          userId,
-          explanation.mistakeType,
-        );
+        await this.processMistake(mistake, gameId, userId);
       }
 
       await this.updateGameStats(gameId, result);
@@ -147,6 +95,89 @@ export class AnalysisService {
       this.logger.error(`Error analyzing game ${gameId}: ${error}`);
       throw error;
     }
+  }
+
+  private async processMistake(
+    mistake: MoveAnalysis,
+    gameId: string,
+    userId: string,
+  ): Promise<void> {
+    const features = this.tacticalFeatureService.extractFeatures(
+      mistake.fen,
+      mistake.fenAfter,
+      mistake.movePlayed ?? '',
+      mistake.moveNumber,
+    );
+
+    const pattern = this.detectPattern(mistake, features);
+    const patternAnalysis = this.createPatternAnalysis(pattern);
+    const severity = this.getSeverity(mistake.moveQuality);
+
+    const structuredMistake = this.mistakeBuilder.build({
+      fen: mistake.fen,
+      movePlayed: mistake.movePlayed ?? '',
+      bestMove: mistake.bestMove,
+      phase: mistake.phase,
+      engineEvaluation: {
+        centipawnLoss: mistake.centipawnLoss ?? 0,
+        mateBefore: mistake.mateBefore,
+        mateAfter: mistake.mateAfter,
+        evalBefore: mistake.evalBefore,
+        evalAfter: mistake.evalAfter,
+      },
+      features,
+      patternAnalysis,
+    });
+
+    const explanation =
+      await this.llmExplainerService.explainStructured(structuredMistake);
+
+    const tacticalFeaturesJson: TacticalFeaturesJson = {
+      isCheck: mistake.isCheck,
+      isCapture: mistake.isCapture,
+      kingExposed: features.kingExposed,
+      backRankWeak: features.isBackRankExposed,
+      materialSwing: features.materialSwing,
+      phase: mistake.phase,
+    };
+
+    const mateIn = this.getMateDistance(mistake);
+    const difficulty = this.calculateDifficulty(mistake, features);
+
+    await this.analysisRepository.createMistake(
+      userId,
+      gameId,
+      null,
+      mistake.fen,
+      mistake.movePlayed ?? '',
+      mistake.bestMove,
+      mistake.moveNumber,
+      mistake.centipawnLoss ?? 0,
+      severity,
+      explanation.mistakeType,
+      explanation.explanation,
+      pattern,
+      mateIn,
+      mistake.moveNumber,
+      mistake.moveNumber,
+      difficulty,
+      tacticalFeaturesJson,
+    );
+
+    await this.analysisRepository.upsertMistakePattern(
+      userId,
+      explanation.mistakeType,
+    );
+  }
+
+  private createPatternAnalysis(pattern: TacticalPattern): PatternAnalysis {
+    return {
+      pattern,
+      description: pattern,
+      difficulty: 50,
+      keyPiece: null,
+      isCheckmateRelated: pattern === 'missed_mate' || pattern === 'back_rank_mate',
+    };
   }
 
   async getAnalysisResults(gameId: string, userId: string) {

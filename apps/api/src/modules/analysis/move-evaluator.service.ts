@@ -20,6 +20,7 @@ export interface TacticalFeatures {
 export interface MoveAnalysis {
   moveNumber: number;
   fen: string;
+  fenAfter: string;
   movePlayed: string;
   isUserMove: boolean;
   evalBefore: number | null;
@@ -173,6 +174,7 @@ export class MoveEvaluatorService {
       positions.push({
         moveNumber,
         fen: fenBefore,
+        fenAfter,
         movePlayed,
         isUserMove,
         evalBefore,
