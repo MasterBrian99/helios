@@ -1,17 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../../database/schema/db';
-import { Game } from '../../database/schema/games';
-import {
-  TacticalFeaturesJson,
-  TacticalPattern,
-  MoveClassification,
-} from '../../database/schema/move-classifications';
+
 import { MoveEvaluatorService, MoveAnalysis } from './move-evaluator.service';
 import { LlmExplainerService } from './llm-explainer.service';
 import { AnalysisRepository } from './analysis.repository';
-import { ChessEngineService } from '../../chess-engines';
 import {
   TacticalFeatureService,
   TacticalFeatures,
@@ -25,6 +18,14 @@ import {
   SequenceMergerService,
   TacticalSequence,
 } from './sequence-merger.service';
+import { Game } from 'src/database/schema/games';
+import { DB } from 'src/database/schema/db';
+import { ChessEngineService } from 'src/chess-engines';
+import {
+  TacticalFeaturesJson,
+  TacticalPattern,
+  MoveClassification,
+} from 'src/database/schema/move-classifications';
 
 interface SequencePatternMapping {
   analysis: PatternAnalysis;

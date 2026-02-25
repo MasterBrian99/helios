@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { MoveEvaluatorService } from './move-evaluator.service';
-import { ChessEngineService } from '../../chess-engines';
 import { AnalysisOpeningBookService } from './analysis-opening-book.service';
+import { ChessEngineService } from 'src/chess-engines';
 
 describe('MoveEvaluatorService', () => {
   const createService = () => {

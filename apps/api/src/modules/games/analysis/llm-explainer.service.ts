@@ -3,12 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { google } from '@ai-sdk/google';
 import { generateText, Output, stepCountIs } from 'ai';
 import z from 'zod';
+import { StructuredMistake } from './structured-mistake.interface';
 import {
+  MistakeType,
   ExplanationSource,
   ExplanationValidationStatus,
-  MistakeType,
-} from '../../database/schema/move-classifications';
-import { StructuredMistake } from './structured-mistake.interface';
+} from 'src/database/schema/move-classifications';
 
 const ANALYSIS_VERSION = 'v2-deterministic-core';
 

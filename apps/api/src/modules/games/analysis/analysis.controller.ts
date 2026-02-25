@@ -9,14 +9,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AnalysisService } from './analysis.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PgBossService } from '@wavezync/nestjs-pgboss';
 import { ANALYZE_GAME_JOB, AnalyzeGameJobData } from './jobs/analyze-game.job';
 import { Auth } from 'src/common/decorators';
 
 @ApiTags('analysis')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('analysis')
 export class AnalysisController {
   constructor(

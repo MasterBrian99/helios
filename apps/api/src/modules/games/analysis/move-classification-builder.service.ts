@@ -3,7 +3,7 @@ import { Chess } from 'chess.js';
 import type { PatternAnalysis } from './motif-classifier.service';
 import { StructuredMistake } from './structured-mistake.interface';
 import { TacticalFeatures } from './tactical-feature.service';
-import { MoveClassification } from '../../database/schema/move-classifications';
+import { MoveClassification } from 'src/database/schema/move-classifications';
 
 export interface DeterministicEngineEvaluation {
   centipawnLoss: number;

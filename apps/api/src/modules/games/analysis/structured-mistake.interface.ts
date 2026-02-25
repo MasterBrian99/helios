@@ -1,4 +1,4 @@
-import { MoveClassification } from '../../database/schema/move-classifications';
+import { MoveClassification } from "src/database/schema/move-classifications";
 
 export interface StructuredMistake {
   phase: 'opening' | 'middlegame' | 'endgame';

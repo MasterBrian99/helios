@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { TacticalPattern } from '../../database/schema/move-classifications';
 import { TacticalFeatures } from './tactical-feature.service';
 import { TacticalSequence } from './sequence-merger.service';
+import { TacticalPattern } from 'src/database/schema/move-classifications';
 
 export interface PatternAnalysis {
   pattern: TacticalPattern;

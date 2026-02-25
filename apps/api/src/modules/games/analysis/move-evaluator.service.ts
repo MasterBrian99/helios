@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Chess } from 'chess.js';
-import { ChessEngineService } from '../../chess-engines';
-import { MoveQuality } from '../../database/schema/game-positions';
 import { AnalysisOpeningBookService } from './analysis-opening-book.service';
+import { MoveQuality } from 'src/database/schema/game-positions';
+import { ChessEngineService } from 'src/chess-engines';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 

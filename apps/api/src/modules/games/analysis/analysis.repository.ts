@@ -1,27 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../../database/schema/db';
+
+import { MoveAnalysis } from './move-evaluator.service';
+import {
+  ClassificationPattern,
+  ClassificationPatternCreate,
+} from 'src/database/schema/classification-patterns';
+import { DB } from 'src/database/schema/db';
 import {
   GamePosition,
   GamePositionCreate,
-} from '../../database/schema/game-positions';
+} from 'src/database/schema/game-positions';
 import {
+  MoveClassification,
+  MistakeType,
+  TacticalPattern,
+  TacticalFeaturesJson,
   ExplanationSource,
   ExplanationValidationStatus,
   MoveClassificationRecord,
   MoveClassificationCreate,
-  MistakeType,
-  TacticalPattern,
-  TacticalFeaturesJson,
-  MoveClassification,
-} from '../../database/schema/move-classifications';
-import {
-  ClassificationPattern,
-  ClassificationPatternCreate,
-} from '../../database/schema/classification-patterns';
-import { getUUID } from '../../utils/uuid-gen';
-import { MoveAnalysis } from './move-evaluator.service';
+} from 'src/database/schema/move-classifications';
+import { getUUID } from 'src/utils/uuid-gen';
 
 @Injectable()
 export class AnalysisRepository {
