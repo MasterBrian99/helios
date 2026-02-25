@@ -20,7 +20,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('best_move_eval', 'real')
     .addColumn('move_quality', 'varchar(20)', (col) =>
       col.check(
-        sql`move_quality IN ('brilliant', 'great', 'good', 'book', 'inaccuracy', 'mistake', 'blunder')`,
+        sql`move_quality IN ('brilliant', 'great', 'best', 'book', 'miss', 'mistake', 'blunder')`,
       ),
     )
     .addColumn('created_at', 'timestamp', (col) =>

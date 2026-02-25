@@ -19,7 +19,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
       col
         .notNull()
         .check(
-          sql`classification IN ('brilliant', 'great', 'good', 'book', 'inaccuracy', 'mistake', 'blunder')`,
+          sql`classification IN ('brilliant', 'great', 'best', 'book', 'miss', 'mistake', 'blunder')`,
         ),
     )
     .addColumn('mistake_type', 'varchar(50)')
