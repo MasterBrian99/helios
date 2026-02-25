@@ -1,10 +1,10 @@
 import { type Kysely, sql } from 'kysely';
-import { ChessResult } from '../../modules/games/game/enums/chess-game-result';
-import { ChessGameSource } from '../../modules/games/game/enums/chess-game-source.enum';
-import { ChessTimeControlType } from '../../modules/games/game/enums/chess-time-control-type.enum';
-import { ChessUserColor } from '../../modules/games/game/enums/chess-user-color.enum';
-import { ChessGameStatus } from '../../modules/games/game/enums/chess-game-status.enum';
-import { ChessGameTermination } from '../../modules/games/game/enums/chess-game-termination.enum';
+import { ChessResult } from '../../modules/games/enums/chess-game-result';
+import { ChessGameSource } from '../../modules/games/enums/chess-game-source.enum';
+import { ChessTimeControlType } from '../../modules/games/enums/chess-time-control-type.enum';
+import { ChessUserColor } from '../../modules/games/enums/chess-user-color.enum';
+import { ChessGameStatus } from '../../modules/games/enums/chess-game-status.enum';
+import { ChessGameTermination } from '../../modules/games/enums/chess-game-termination.enum';
 
 const tableName = 'games';
 

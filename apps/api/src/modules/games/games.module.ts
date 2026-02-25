@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
-import { GameModule } from './game/game.module';
+import { GameService } from './service/game.service';
+import { OpeningService } from './service/opening.service';
+import { PgnParserService } from './service/pgn-parser.service';
+import { GameRepository } from './repository/game.repository';
+import { GameController } from './controller/game.controller';
 
 @Module({
-  controllers: [],
+  controllers: [GameController],
   providers: [],
-  imports: [GameModule],
+  imports: [GameService, GameRepository, PgnParserService, OpeningService],
 })
 export class GamesModule {}

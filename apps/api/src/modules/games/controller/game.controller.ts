@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Query, Get } from '@nestjs/common';
-import { GameService } from './game.service';
-import { CreateGameDto } from './dto/create-game.dto';
+import { GameService } from '../service/game.service';
 import { Auth } from 'src/common/decorators';
-import { GameListFilterDto } from './dto/game-list-filter.dto';
+import { CreateGameDto } from '../dto/create-game.dto';
+import { GameListFilterDto } from '../dto/game-list-filter.dto';
 
 @Controller('game')
 export class GameController {

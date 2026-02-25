@@ -3,9 +3,9 @@ import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { DB } from 'src/database/schema/db';
 import { GameCreate } from 'src/database/schema/games';
-import { GameListFilterDto } from './dto/game-list-filter.dto';
 import { isDefined } from 'class-validator';
 import { paginateWithOffset } from 'src/common/utils/toPaginatedResult';
+import { GameListFilterDto } from '../dto/game-list-filter.dto';
 
 @Injectable()
 export class GameRepository {

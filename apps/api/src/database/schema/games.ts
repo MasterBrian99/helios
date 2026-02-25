@@ -1,11 +1,11 @@
 import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 import { CreatedAt, UpdatedAt, DeletedAt } from './common/datetime';
-import { ChessResult } from 'src/modules/games/game/enums/chess-game-result';
-import { ChessGameStatus } from 'src/modules/games/game/enums/chess-game-status.enum';
-import { ChessGameTermination } from 'src/modules/games/game/enums/chess-game-termination.enum';
-import { ChessGameSource } from 'src/modules/games/game/enums/chess-game-source.enum';
-import { ChessUserColor } from 'src/modules/games/game/enums/chess-user-color.enum';
-import { ChessTimeControlType } from 'src/modules/games/game/enums/chess-time-control-type.enum';
+import { ChessResult } from 'src/modules/games/enums/chess-game-result';
+import { ChessGameStatus } from 'src/modules/games/enums/chess-game-status.enum';
+import { ChessGameTermination } from 'src/modules/games/enums/chess-game-termination.enum';
+import { ChessGameSource } from 'src/modules/games/enums/chess-game-source.enum';
+import { ChessUserColor } from 'src/modules/games/enums/chess-user-color.enum';
+import { ChessTimeControlType } from 'src/modules/games/enums/chess-time-control-type.enum';
 
 export interface GameTable {
   id: Generated<string>;
