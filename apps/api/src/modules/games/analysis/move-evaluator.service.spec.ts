@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { MoveEvaluatorService } from './move-evaluator.service';
-import { AnalysisOpeningBookService } from './analysis-opening-book.service';
 import { ChessEngineService } from 'src/chess-engines';
+import { OpeningService } from '../service/opening.service';
 
 describe('MoveEvaluatorService', () => {
   const createService = () => {
@@ -20,7 +20,7 @@ describe('MoveEvaluatorService', () => {
 
     const openingBookService = {
       isBookPosition: jest.fn(() => false),
-    } as unknown as AnalysisOpeningBookService;
+    } as unknown as OpeningService;
 
     const service = new MoveEvaluatorService(
       chessEngine,

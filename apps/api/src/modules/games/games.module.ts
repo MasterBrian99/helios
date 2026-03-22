@@ -7,7 +7,7 @@ import { GameController } from './controller/game.controller';
 
 @Module({
   controllers: [GameController],
-  providers: [],
-  imports: [GameService, GameRepository, PgnParserService, OpeningService],
+  providers: [GameService, GameRepository, PgnParserService, OpeningService],
+  imports: [],
 })
 export class GamesModule {}

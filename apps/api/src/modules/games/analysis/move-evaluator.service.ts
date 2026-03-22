@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Chess } from 'chess.js';
-import { AnalysisOpeningBookService } from './analysis-opening-book.service';
 import { MoveQuality } from 'src/database/schema/game-positions';
 import { ChessEngineService } from 'src/chess-engines';
+import { OpeningService } from '../service/opening.service';
 
 export type GamePhase = 'opening' | 'middlegame' | 'endgame';
 
@@ -76,7 +76,7 @@ export class MoveEvaluatorService {
   constructor(
     private readonly chessEngine: ChessEngineService,
     private readonly configService: ConfigService,
-    private readonly openingBookService: AnalysisOpeningBookService,
+    private readonly openingBookService: OpeningService,
   ) {
     const configuredDepth =
       this.configService.get<number>('ANALYSIS_ENGINE_DEPTH') ?? 20;

@@ -9,8 +9,8 @@ import { TacticalFeatureService } from './tactical-feature.service';
 import { MoveClassificationBuilderService } from './move-classification-builder.service';
 import { SequenceMergerService } from './sequence-merger.service';
 import { MotifClassifierService } from './motif-classifier.service';
-import { AnalysisOpeningBookService } from './analysis-opening-book.service';
 import { ChessEnginesModule } from 'src/chess-engines';
+import { OpeningService } from '../service/opening.service';
 
 @Module({
   imports: [ChessEnginesModule],
@@ -25,7 +25,7 @@ import { ChessEnginesModule } from 'src/chess-engines';
     MoveClassificationBuilderService,
     SequenceMergerService,
     MotifClassifierService,
-    AnalysisOpeningBookService,
+    OpeningService
   ],
   exports: [AnalysisService],
 })
