@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { StandardResponse } from 'src/common/dto/standard-response.dto';
+import { StandardResponse } from 'src/common/dtos/standard-response.dto';
 import { Public, Auth } from 'src/common/decorators';
 import { UserDto } from '../user/dto/user.dto';
 

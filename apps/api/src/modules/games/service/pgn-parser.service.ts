@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ChessPGN } from '@chess-pgn/chess-pgn';
-import { ChessResult } from './enums/chess-game-result';
-import { ChessGameTermination } from './enums/chess-game-termination.enum';
-import { ChessTimeControlType } from './enums/chess-time-control-type.enum';
+import { ChessResult } from '../enums/chess-game-result';
+import { ChessGameTermination } from '../enums/chess-game-termination.enum';
+import { ChessTimeControlType } from '../enums/chess-time-control-type.enum';
 import { OpeningService } from './opening.service';
 
 export interface ParsedGame {

@@ -34,6 +34,9 @@ export class GameModel implements Game {
   opponentAccuracy: number | null;
   userAvgCentipawnLoss: number | null;
   opponentAvgCentipawnLoss: number | null;
+  userBrilliants: number;
+  userGreats: number;
+  userBookMoves: number;
   userBlunders: number;
   userMistakes: number;
   userInaccuracies: number;
